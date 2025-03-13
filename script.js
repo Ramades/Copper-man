@@ -1,6 +1,8 @@
 let nombre;
 let puntaje;
-let personaje=0;
+let personaje = 0;
+
+// Funciones que se encargan de guardar en el local storage 
 
 function guardarJugador(nom, punt) {
     let jugadores = JSON.parse(localStorage.getItem("jugadores")) || [];
@@ -15,29 +17,29 @@ function guardarJugador(nom, punt) {
         }
     } else {
         // Si no existe, lo agregamos
-        jugadores.push({nom, punt,date: new Date().toLocaleDateString()});
+        jugadores.push({ nom, punt, date: new Date().toLocaleDateString() });
     }
 
     // Guardar en localStorage
     localStorage.setItem("jugadores", JSON.stringify(jugadores));
 }
-
 function obtenerJugadores() {
     return JSON.parse(localStorage.getItem("jugadores")) || [];
 }
 
-class Menu extends Phaser.Scene{
-    constructor(){
+// Funciones que controlan el menu inicial del juego
+class Menu extends Phaser.Scene {
+    constructor() {
         super("menu-scene")
     }
-    preload(){
+    preload() {
         this.load.image('menuBackground', 'img/ImgHero.jpg'); // Fondo del menú
         this.load.image('playButton', 'assets/btn.png'); // Botón jugar
         this.load.image('controlsButton', 'assets/btn.png'); // Botón controles
         this.load.image('creditsButton', 'assets/btn.png'); // Botón créditos
         this.load.audio('backgroundMusic', 'Sounds/MusicaPrincipal.mp3'); // Carga el archivo de audio
     }
-    create(){
+    create() {
         // Agregar fondo
         let background = this.add.image(400, 300, 'menuBackground');
         background.setScale(
@@ -71,28 +73,94 @@ class Menu extends Phaser.Scene{
             .on('pointerdown', () => this.scene.start('CreditsScene'));
     }
 
-    update(){        
+    update() {
     }
 }
-class PlayerSetupScene extends Phaser.Scene{
-    constructor(){
+class ControlsScene extends Phaser.Scene {
+    constructor() {
+        super("ControlsScene");
+    }
+    preload() {
+        // Carga la imagen y el botón para volver al menú
+        this.load.image('controlsImage', 'assets/mountain.png'); // Imagen de controles
+        this.load.image('backButton', 'assets/btn.png'); // Botón para volver al menú
+    }
+    create() {
+        // Muestra la imagen de controles
+        this.add.image(400, 300, 'controlsImage').setScale(1);
+
+        // Crea el botón para volver al menú
+        this.add.image(400, 500, 'backButton')
+            .setScale(0.15)
+            .setInteractive()
+            .on('pointerdown', () => {
+                this.scene.start("menu-scene");
+            });
+    }
+}
+class CreditsScene extends Phaser.Scene {
+    constructor() {
+        super("CreditsScene");
+    }
+    preload() {
+        // Carga la imagen y el botón para volver al menú
+        this.load.image('controlsImage', 'assets/mountain.png'); // Imagen de controles
+        this.load.image('backButton', 'assets/btn.png'); // Botón para volver al menú
+    }
+    create() {
+        // Muestra la imagen de controles
+        this.add.image(400, 300, 'controlsImage').setScale(1);
+
+        // Crea el botón para volver al menú
+        this.add.image(400, 500, 'backButton')
+            .setScale(0.15)
+            .setInteractive()
+            .on('pointerdown', () => {
+                this.scene.start("menu-scene");
+            });
+    }
+}
+
+// Funcion para escoger personaje y nombre del jugador
+class PlayerSetupScene extends Phaser.Scene {
+    constructor() {
         super("PlayerSetupScene")
-        
     }
-    preload(){
-        
+
+    preload() {
+        this.load.image('player1', 'img/SoldadoDerecha.png');
+        this.load.image('player2', 'img/SoldadoIzquierda.png');
     }
-    create(){
+
+    create() {
+
+        // INPUT PARA AGREGAR NOMBRE 
+        // Crear el input
         let input = document.createElement("input");
         input.type = "text";
-        input.placeholder = "Escribe tu nombre";
+        input.placeholder = ". . .";
         input.style.position = "absolute";
-        input.style.top = "45%";
-        input.style.left = "40%";
+        input.style.top = "20%";
+        input.style.left = "39%";
         input.style.transform = "translate(-50%, -50%)";
-        input.style.padding = "10px";
-        input.style.fontSize = "20px";
-        
+        input.style.padding = "0px 60px";
+        input.style.fontSize = "3.5rem";
+        input.style.fontFamily = "Guerra";
+        input.style.fontWeight = "Bold";
+
+        input.style.backgroundColor = "transparent";
+        input.style.border = "none";
+        input.style.outline = "none";
+
+        input.style.backgroundImage = "url('assets/PlacaNombre2.png')";
+        input.style.backgroundSize = "cover";
+        input.style.backgroundRepeat = "no-repeat";
+        input.style.backgroundPosition = "center";
+
+
+        input.style.width = "300px";
+        input.style.height = "250px";
+
         // Agregar input dentro del div que contiene el canvas
         document.getElementById("canvas").appendChild(input);
 
@@ -100,40 +168,115 @@ class PlayerSetupScene extends Phaser.Scene{
         let button = document.createElement("button");
         button.innerText = "Confirmar";
         button.style.position = "absolute";
-        button.style.top = "calc(50% + 40px)";
+        button.style.top = "calc(35% + 60px)";
         button.style.left = "40%";
         button.style.transform = "translateX(-50%)";
         button.style.padding = "10px";
-        
+
+
+        //FUNCION PARA SELECCIONAR CUALQUIERA DE LOS 2 PERSONAJES
+
+        let selectedCharacter = null;
+
+        // Personaje 1
+        let player1 = this.add.image(600, 320, 'player1')
+            .setInteractive()
+            .on('pointerover', () => {
+                // Aumenta la escala y añade un tint sutil para dar efecto de brillo
+                this.tweens.add({
+                    targets: player1,
+                    scale: 1.5,
+                    ease: 'Power1',
+                    duration: 200
+                });
+                player1.setTint(0xaaaaaa);
+            })
+            .on('pointerout', () => {
+                // Vuelve a la escala original y limpia el tint
+                this.tweens.add({
+                    targets: player1,
+                    scale: 1,
+                    ease: 'Power1',
+                    duration: 200
+                });
+                player1.clearTint();
+            })
+            .on('pointerdown', () => {
+                selectedCharacter = 'player1';
+                player1.setTint(0x00ff00); // Resalta el seleccionado
+                player2.clearTint();
+            });
+
+        // Personaje 2
+        let player2 = this.add.image(140, 350, 'player2')
+            .setInteractive()
+            .on('pointerover', () => {
+                // Aumenta la escala y añade un efecto de brillo
+                this.tweens.add({
+                    targets: player2,
+                    scale: 1.1,
+                    ease: 'Power1',
+                    duration: 200
+                });
+                player2.setTint(0xaaaaaa);
+            })
+            .on('pointerout', () => {
+                // Vuelve a la escala original y limpia el tint
+                this.tweens.add({
+                    targets: player2,
+                    scale: 1,
+                    ease: 'Power1',
+                    duration: 200
+                });
+                player2.clearTint();
+            })
+            .on('pointerdown', () => {
+                selectedCharacter = 'player2';
+                player2.setTint(0x00ff00);
+                player1.clearTint();
+            });
+
+
         document.getElementById("canvas").appendChild(button);
 
         button.onclick = () => {
-            nombre=input.value;
-            guardarJugador(nombre, 0);
+            let alias = input.value.trim();
+            const regex = /^[A-Za-z0-9_]{4,8}$/;
+
+            if (!regex.test(alias)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Alias inválido',
+                    text: 'El alias debe ser una sola palabra, contener solo letras, dígitos y guión bajo, y tener entre 4 y 8 caracteres.'
+                });
+                return;
+            }
+
+            if (localStorage.getItem(alias)) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Alias existente',
+                    text: 'Este alias ya ha sido registrado. Por favor, elige otro.'
+                });
+                return;
+            }
+
+            guardarJugador(alias, 0);
             mostrarMejoresPuntuaciones();
-            console.log("Jugador:", input.value);
+            console.log("Jugador:", alias);
+
+            localStorage.setItem(alias, JSON.stringify({ alias: alias, score: 0 ,selectedCharacter}));
+
             input.remove();
-            button.remove(); // Elimina los elementos después de usarlos
+            button.remove();
+
+            this.scene.start('GameScene');
         };
-    }
 
-    update(){        
     }
 }
-class ControlsScene extends Phaser.Scene{
-    constructor(){
-        super("menu-control")
-    }
-    preload(){
-        
-    }
-    create(){
-   
-    }
 
-    update(){        
-    }
-}
+//Funciones del gameplay
 class GameScene extends Phaser.Scene {
     constructor() {
         super("scene-game");
@@ -219,7 +362,7 @@ class GameScene extends Phaser.Scene {
 
         //balas
         this.bullets = this.physics.add.group();
-        this.canShoot = true; 
+        this.canShoot = true;
         this.shootTimer = this.time.addEvent({
             delay: 300, // Tiempo entre disparos (en milisegundos)
             callback: () => { this.canShoot = true; },
@@ -240,16 +383,16 @@ class GameScene extends Phaser.Scene {
         this.physics.add.collider(this.player, this.bombs, this.hitBomb, null, this);
 
 
-         // Hacer que la camara siga al jugador
-         this.cameras.main.startFollow(this.player);
-         this.cameras.main.setBounds(0, 0, levelWidth, this.sys.game.config.height);
+        // Hacer que la camara siga al jugador
+        this.cameras.main.startFollow(this.player);
+        this.cameras.main.setBounds(0, 0, levelWidth, this.sys.game.config.height);
 
-         // Asegurar que la cámara cubra todo el nivel
-         this.cameras.main.setBounds(0, 0, levelWidth, this.sys.game.config.height);
+        // Asegurar que la cámara cubra todo el nivel
+        this.cameras.main.setBounds(0, 0, levelWidth, this.sys.game.config.height);
 
-         // Asegurar que el jugador pueda moverse dentro de los límites del mundo
-         this.physics.world.setBounds(0, 0, levelWidth, this.sys.game.config.height);
-         this.lastSpawnX = this.player.x; // Inicializar la última posición de spawn
+        // Asegurar que el jugador pueda moverse dentro de los límites del mundo
+        this.physics.world.setBounds(0, 0, levelWidth, this.sys.game.config.height);
+        this.lastSpawnX = this.player.x; // Inicializar la última posición de spawn
     }
 
     update() {
@@ -269,11 +412,11 @@ class GameScene extends Phaser.Scene {
         if (this.cursors.up.isDown && this.player.body.touching.down) {
             this.player.setVelocityY(-330);
         }
-        if(this.spaceBar.isDown&&this.canShoot==true){
+        if (this.spaceBar.isDown && this.canShoot == true) {
             this.Shoot();
-            this.canShoot=false;
+            this.canShoot = false;
         }
-        
+
     }
 
     collectStar(player, star) {
@@ -302,14 +445,14 @@ class GameScene extends Phaser.Scene {
         this.gameOver = true;
     }
 
-    Shoot(){
-            let bullet = this.bullets.create(this.player.x, this.player.y, 'bomb');
-            bullet.setScale(0.5);
-            bullet.body.allowGravity = false;
+    Shoot() {
+        let bullet = this.bullets.create(this.player.x, this.player.y, 'bomb');
+        bullet.setScale(0.5);
+        bullet.body.allowGravity = false;
 
-            // Determinar la dirección del disparo
-            let direction = this.player.anims.currentAnim.key === 'left' ? -1 : 1;
-            bullet.setVelocityX(400 * direction);
+        // Determinar la dirección del disparo
+        let direction = this.player.anims.currentAnim.key === 'left' ? -1 : 1;
+        bullet.setVelocityX(400 * direction);
     }
 
     handleNumberPress(number) {
@@ -326,6 +469,7 @@ class GameScene extends Phaser.Scene {
         }
     }
 }
+
 class GameScene2 extends Phaser.Scene {
     constructor() {
         super("scene-game2");
@@ -410,7 +554,7 @@ class GameScene2 extends Phaser.Scene {
 
         //balas
         this.bullets = this.physics.add.group();
-        this.canShoot = true; 
+        this.canShoot = true;
         this.shootTimer = this.time.addEvent({
             delay: 300, // Tiempo entre disparos (en milisegundos)
             callback: () => { this.canShoot = true; },
@@ -448,9 +592,9 @@ class GameScene2 extends Phaser.Scene {
         if (this.cursors.up.isDown && this.player.body.touching.down) {
             this.player.setVelocityY(-330);
         }
-        if(this.spaceBar.isDown&&this.canShoot==true){
+        if (this.spaceBar.isDown && this.canShoot == true) {
             this.Shoot();
-            this.canShoot=false;
+            this.canShoot = false;
         }
 
 
@@ -461,7 +605,7 @@ class GameScene2 extends Phaser.Scene {
                 bullet.destroy();
             }
         });
-        
+
     }
 
     collectStar(player, star) {
@@ -490,14 +634,14 @@ class GameScene2 extends Phaser.Scene {
         this.gameOver = true;
     }
 
-    Shoot(){
-            let bullet = this.bullets.create(this.player.x, this.player.y, 'bomb');
-            bullet.setScale(0.5);
-            bullet.body.allowGravity = false;
+    Shoot() {
+        let bullet = this.bullets.create(this.player.x, this.player.y, 'bomb');
+        bullet.setScale(0.5);
+        bullet.body.allowGravity = false;
 
-            // Determinar la dirección del disparo
-            let direction = this.player.anims.currentAnim.key === 'left' ? -1 : 1;
-            bullet.setVelocityX(400 * direction);
+        // Determinar la dirección del disparo
+        let direction = this.player.anims.currentAnim.key === 'left' ? -1 : 1;
+        bullet.setVelocityX(400 * direction);
     }
     handleNumberPress(number) {
         switch (number) {
@@ -513,6 +657,7 @@ class GameScene2 extends Phaser.Scene {
         }
     }
 }
+
 class Boss extends Phaser.Scene {
     constructor() {
         super("scene-boss");
@@ -597,7 +742,7 @@ class Boss extends Phaser.Scene {
 
         //balas
         this.bullets = this.physics.add.group();
-        this.canShoot = true; 
+        this.canShoot = true;
         this.shootTimer = this.time.addEvent({
             delay: 300, // Tiempo entre disparos (en milisegundos)
             callback: () => { this.canShoot = true; },
@@ -635,9 +780,9 @@ class Boss extends Phaser.Scene {
         if (this.cursors.up.isDown && this.player.body.touching.down) {
             this.player.setVelocityY(-330);
         }
-        if(this.spaceBar.isDown&&this.canShoot==true){
+        if (this.spaceBar.isDown && this.canShoot == true) {
             this.Shoot();
-            this.canShoot=false;
+            this.canShoot = false;
         }
 
 
@@ -648,7 +793,7 @@ class Boss extends Phaser.Scene {
                 bullet.destroy();
             }
         });
-        
+
     }
 
     collectStar(player, star) {
@@ -677,14 +822,14 @@ class Boss extends Phaser.Scene {
         this.gameOver = true;
     }
 
-    Shoot(){
-            let bullet = this.bullets.create(this.player.x, this.player.y, 'bomb');
-            bullet.setScale(0.5);
-            bullet.body.allowGravity = false;
+    Shoot() {
+        let bullet = this.bullets.create(this.player.x, this.player.y, 'bomb');
+        bullet.setScale(0.5);
+        bullet.body.allowGravity = false;
 
-            // Determinar la dirección del disparo
-            let direction = this.player.anims.currentAnim.key === 'left' ? -1 : 1;
-            bullet.setVelocityX(400 * direction);
+        // Determinar la dirección del disparo
+        let direction = this.player.anims.currentAnim.key === 'left' ? -1 : 1;
+        bullet.setVelocityX(400 * direction);
     }
     handleNumberPress(number) {
         switch (number) {
@@ -700,11 +845,12 @@ class Boss extends Phaser.Scene {
         }
     }
 }
+
 const config = {
     type: Phaser.WEBGL,
     width: 800,
     height: 600,
-    parent:'canvas',
+    parent: 'canvas',
     physics: {
         default: 'arcade',
         arcade: {
@@ -712,8 +858,8 @@ const config = {
             debug: false
         }
     },
-    scene: [Menu,GameScene,GameScene2,PlayerSetupScene],
-    
+    scene: [Menu, GameScene, GameScene2, PlayerSetupScene, ControlsScene, CreditsScene],
+
 };
 
 window.onload = () => {
