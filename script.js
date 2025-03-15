@@ -370,7 +370,7 @@ class PlayerSetupScene extends Phaser.Scene {
                       });
                       return;
                   }
-       */
+       */   nombre=alias;
             guardarJugador(alias, 0);
             mostrarMejoresPuntuaciones();
             console.log("Jugador:", alias);
@@ -1096,7 +1096,7 @@ class Boss extends Phaser.Scene {
         this.load.image('bomb1', 'assets/Personajes/Enemigo.png', { frameWidth: 32, frameHeight: 32 });
         this.load.image('rayo', 'assets/Personajes/rayo.png');
         this.load.image('sky', 'img/Nivel1/Fondo.jpg');
-        this.load.image('ground', 'assets/ElementosNivel/platform.png');
+        this.load.image('ground3', 'assets/ElementosNivel/groundcopper.jpg');
         this.load.image('star', 'assets/Consumibles/star.png');
         this.load.image('specialItem', 'assets/Consumibles/starPlus.png');
         this.load.image('bomb', 'assets/Personajes/bomb.png');
@@ -1104,15 +1104,41 @@ class Boss extends Phaser.Scene {
         this.load.image('ball', 'assets/Personajes/electroball1.png');
         this.load.spritesheet('dude', 'assets/Personajes/German_Soldier1.png', { frameWidth: 32, frameHeight: 30 });
         this.load.spritesheet('dude1', 'assets/Personajes/dude.png', { frameWidth: 32, frameHeight: 30 });
-
+        this.load.image('bossbg','img/boss/bossbg.jpeg');
+        this.load.image('ganar','img/boss/ganar.jpeg')
         this.load.image('Home', 'assets/Botones/HomeBtn.png');
         this.load.image('Reiniciar', 'assets/Botones/ReturnBtn.png');
 
         this.load.audio('deathSound', 'Sounds/Damage.mp3');
-        this.load.image("boss", 'assets/Personajes/German_Soldier1.png', { frameWidth: 32, frameHeight: 30 });
-        
+        this.load.audio('perderSound', 'Sounds/MisionFailed.mp3');
+        this.load.audio('pistol', 'Sounds/Pistola.mp3');
+        this.load.audio('damageBoss','Sounds/damage-4011.mp3');
+        this.load.audio('expBoss','Sounds/8-bit-explosion-low-resonant-45659.mp3');
+        this.load.spritesheet('boss', 'assets/Personajes/SpaceStation_Android_Sheet.png', { frameWidth: 32, frameHeight: 30 });
+        this.load.spritesheet('exp', 'assets/Personajes/explosion.png', { frameWidth: 29, frameHeight: 32});
     }
     create() {
+        this.bossVul=true;
+        this.player = null;
+        this.stars = null;
+        this.bombs = null;
+        this.platforms = null;
+        this.cursors = null;
+        this.score = 0;
+        this.gameOver = false;
+        this.scoreText = null;
+        this.spaceBar = null;
+        this.bullets = null;
+        this.bossSpeed = 100; // Velocidad del jefe
+        this.bossDirection = -1; 
+        this.bossFase=1;
+        this.etapa2finalizada = false;
+        this.lastArrowPressed=null;
+        this.delay = 2000;
+        this.lives=3;
+        this.isInvulnerable = false;
+        this.bossHealth=100;
+        this.bossMaxHealth=100;
         //cambiar entre escenas provicional
         this.input.keyboard.on("keydown", (event) => {
             if (event.key >= "0" && event.key <= "9") {
@@ -1121,12 +1147,13 @@ class Boss extends Phaser.Scene {
             }
         });
         // Fondo
-        this.add.image(400, 300, 'sky');
+        this.add.image(400, 300, 'bossbg');
 
         // Plataformas
         this.platforms = this.physics.add.staticGroup();
-        this.platforms.create(400, 568, 'ground').setScale(2).refreshBody();
 
+        let platform = this.platforms.create(400, 580, 'ground3').setScale(1.5,.8).refreshBody();
+        
         // Jugador
         let selectedCharacter = localStorage.getItem("selectedCharacter") || 'player1';
         let characterMap = {
@@ -1182,6 +1209,25 @@ class Boss extends Phaser.Scene {
             callbackScope: this,
             loop: true
         });
+        this.anims.create({
+            key: 'idle',
+            frames: this.anims.generateFrameNumbers('boss', { start: 6, end: 6 }),
+            frameRate: 6,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'destroy',
+            frames: this.anims.generateFrameNumbers('exp', { start: 0, end: 4}),
+            frameRate: 10,
+            repeat: 0
+        });
+        // Animación de "Caminar" - Suponiendo que está en la segunda fila (frames 8 a 15)
+        this.anims.create({
+            key: 'walk',
+            frames: this.anims.generateFrameNumbers('boss', { start: 0, end: 5}), // Ajusta según la cantidad real de frames
+            frameRate: 10,
+            repeat: -1
+        });
 
         // Puntuación
         
@@ -1202,7 +1248,7 @@ class Boss extends Phaser.Scene {
         this.physics.add.collider(this.player, this.bombs, this.hitBomb, null, this);
         
         // Agregar el jefe en la pantalla
-        this.boss = this.physics.add.sprite(700, 500, "dude").setScale(4);
+        this.boss = this.physics.add.sprite(700, 500, "boss").setScale(4);
         this.boss.setImmovable(true); // Evita que el jefe sea empujado
         this.boss.setCollideWorldBounds(true);
         this.bossHealth = 100; // Vida máxima del jefe
@@ -1212,6 +1258,7 @@ class Boss extends Phaser.Scene {
         this.updateHealthBar();    
     
         this.boss.body.allowGravity = false;
+        
         this.physics.add.overlap(this.bullets, this.boss, this.takeDamage, null, this);
         this.physics.add.overlap(this.bombs, this.player, this.hitBomb, null, this);
         this.physics.add.overlap(this.boss, this.player, this.hitBoss, null, this);
@@ -1271,17 +1318,17 @@ class Boss extends Phaser.Scene {
 
         if (this.bossDirection == -1) {
             
-            this.boss.anims.play('right', true);
+            this.boss.anims.play('walk', true);
             this.boss.setFlipX(true);
             
         } else if (this.bossDirection == 1) {
 
-            this.boss.anims.play('right', true);
+            this.boss.anims.play('walk', true);
             this.boss.setFlipX(false);
             
         } 
         if(this.bossSpeed==0) {
-            this.boss.anims.play('turn');
+            this.boss.anims.play('destroy',true);
             
         }
 
@@ -1305,7 +1352,7 @@ class Boss extends Phaser.Scene {
         let bullet = this.bullets.create(this.player.x, this.player.y, 'bomb');
         bullet.setScale(0.5);
         bullet.body.allowGravity = false;
-
+        this.sound.play('pistol');
         // Determinar la dirección del disparo
         let direction = this.lastArrowPressed === 'left' ? -1 : 1;
         bullet.setVelocityX(400 * direction);
@@ -1325,7 +1372,7 @@ class Boss extends Phaser.Scene {
     }
     updateHealthBar() {
         this.healthBar.clear(); // Limpiar la barra anterior
-
+        this.sound.play('damageBoss');
         // Dibujar el fondo de la barra de vida (gris)
         this.healthBar.fillStyle(0x555555);
         this.healthBar.fillRect(150, 50, 500, 20);
@@ -1379,8 +1426,21 @@ class Boss extends Phaser.Scene {
     
         // Destruir al jefe si su vida llega a 0
         if (this.bossHealth <= 0) {
-            this.boss.destroy(); // Destruye completamente al jefe
-            this.healthBar.clear();
+            this.boss.anims.play('destroy');
+            this.bossShootTimer.paused = true;
+            this.bossSpeed=0;
+            this.sound.play('expBoss');
+            // Esperar a que la animación termine antes de destruir al jefe
+            this.time.delayedCall(1000, () => {
+                this.boss.destroy();
+                this.healthBar.clear();
+                this.ganar();
+            });
+                
+            
+        
+            // Evitar que el jefe reciba más daño mientras la animación se reproduce
+          
         }
     }
     hitBomb(player, bomb) {
@@ -1388,7 +1448,7 @@ class Boss extends Phaser.Scene {
         if (this.isInvulnerable) return; // No recibe daño si es invulnerable
     
         this.lives -= 1;
-        
+        this.sound.play('deathSound');
         this.updateLivesUI();
     
         if (this.lives <= 0 && !this.GameOver) {
@@ -1402,6 +1462,7 @@ class Boss extends Phaser.Scene {
         if (this.isInvulnerable) return;
     
         this.lives -= 1;
+        this.sound.play('deathSound');
         this.updateLivesUI();
     
         if (this.lives <= 0 && !this.GameOver) {
@@ -1446,6 +1507,13 @@ class Boss extends Phaser.Scene {
             // En la fase 1, el jefe dispara una sola bala dirigida al jugador
             this.spawnBossProjectile();
         }
+        
+    }
+    ganar(){
+        let playerName = localStorage.getItem('playerName') || "Jugador";
+        let puntaje=this.lives*100;
+        guardarJugador(playerName, puntaje);
+        this.scene.start('ganar');
     }
     spawnBossProjectile() {
         let bomb = this.bombs.create(this.boss.x, this.boss.y, 'ball');
@@ -1467,7 +1535,7 @@ class Boss extends Phaser.Scene {
         this.player.setTint(0xff0000);
 
         if (!this.deathSoundPlayed) {
-            this.sound.play('deathSound');
+            this.sound.play('perderSound');
             this.deathSoundPlayed = true;
         }
 
@@ -1548,8 +1616,8 @@ class Boss extends Phaser.Scene {
         for (let i = 0; i < 13; i++) {
             let ray = this.rayos.create(x, 0, 'rayo');
             ray.body.allowGravity = false; // Inicialmente sin gravedad
-            ray.setScale(0.07);
-            ray.body.setSize(5, 5);
+            ray.setScale(0.06);
+            
             rayos.push(ray); // Guardar el rayo en el array
             x += 70;
         }
@@ -1568,6 +1636,46 @@ class Boss extends Phaser.Scene {
         });
     }
 }
+class ganar extends Phaser.Scene {
+    constructor() {
+        super("ganar");
+    }
+    preload() {
+        // Carga la imagen y el botón para volver al menú
+        this.load.image('bgganar', 'img/boss/ganar.jpeg');
+        this.load.image('ganarT', 'img/MenuUI/Ganaste-15-3-2025.png'); 
+        this.load.image('ganarTxt', 'img/MenuUI/Venciste-al-malvado-CFE-y-re-15-3-2025.png');
+        this.load.image('Home', 'assets/Botones/HomeBtn.png');// Imagen de controles
+        // Botón para volver al menú
+
+        
+        this.load.audio('backgroundMusic', 'Sounds/MusicaPrincipal.mp3'); // Carga el archivo de audio
+        this.load.audio('hoverSound', 'Sounds/ClickSonido.mp3');
+        this.load.audio('ganarsound', 'Sounds/FinishLevel.mp3');
+    }
+    create() {
+        // Muestra la imagen de controles
+        this.sound.play('ganarsound');
+        this.add.image(400, 300, 'bossbg');
+        const cam=this.cameras.main;
+        const centerX= this.cameras.main.centerX;
+        const centerY=this.cameras.main.centerY;
+        let title=this.add.image(centerX,centerY-200,'ganarT').setOrigin(0.5).setScrollFactor(0).setDepth(10).setScale(0.5);
+        let ttxtt=this.add.image(centerX,centerY,'ganarTxt').setOrigin(0.5).setScrollFactor(0).setDepth(10).setScale(0.7);
+        // Crea el botón para volver al menú
+        this.add.image(400, 500, 'Home')
+            .setScale(0.5)
+            .setInteractive().on('pointerover',()=>{
+                this.input.setDefaultCursor('pointer');     // Cambia el cursor
+                this.sound.play('hoverSound'); 
+            })
+            .on('pointerdown', () => {
+                               
+                this.scene.start("menu-scene");
+            });
+            
+    }
+}
 
 const config = {
     type: Phaser.WEBGL,
@@ -1581,8 +1689,7 @@ const config = {
             debug: false
         }
     },
-    scene: [Menu, GameScene, GameScene2, PlayerSetupScene, ControlsScene, CreditsScene, Boss],
-
+    scene: [Menu, GameScene, GameScene2, PlayerSetupScene, ControlsScene, CreditsScene, Boss, ganar],
 };
 
 window.onload = () => {
