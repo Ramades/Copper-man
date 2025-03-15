@@ -6,7 +6,7 @@ function mostrarMejoresPuntuaciones() {
     puntuaciones.sort((a, b) => b.punt - a.punt);
 
     // Limitar a las 10 mejores puntuaciones
-    puntuaciones = puntuaciones.slice(0, 10);
+    puntuaciones = puntuaciones.slice(0, 7);
 
     let scoreContainer = document.getElementById('tabla-puntuaciones');
             scoreContainer.innerHTML = `<h3>Puntuaciones</h3>
@@ -15,7 +15,7 @@ function mostrarMejoresPuntuaciones() {
                                         <tr>
                                             <th class="fs-2">Nombre</th>
                                             <th class="fs-2">Puntuación</th>
-                                            <th class="fs-2">Fecha de Registro</th> <!-- Nueva columna -->
+                                            <th class="fs-2">Fecha de Registro</th>
                                         </tr>
                                     </thead>
                                     <tbody>

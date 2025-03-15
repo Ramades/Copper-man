@@ -48,7 +48,7 @@ class Menu extends Phaser.Scene {
         this.load.image('TableButtonHover', 'assets/Botones/ResumeColBtn.png'); // Botón jugar
         this.load.image('creditsButtonHover', 'assets/Botones/Settingscol_Button.png'); // Botón jugar
 
-        this.load.audio('backgroundMusic', 'Sounds/MusicaPrincipal.mp3'); // Carga el archivo de audio
+        this.load.audio('backgroundMusic', 'Sounds/Menu.mp3'); // Carga el archivo de audio
         this.load.audio('hoverSound', 'Sounds/ClickSonido.mp3');
     }
     create() {
@@ -59,9 +59,10 @@ class Menu extends Phaser.Scene {
             this.sys.game.config.height / background.height
         );
 
-
-        // let music = this.sound.add('backgroundMusic');
-        // music.play({ loop: true });
+        if (!this.music) {
+            this.music = this.sound.add('backgroundMusic');
+            this.music.play({ loop: true });
+        }
 
         let logo = this.add.image(400, -100, 'Logo');
         logo.setScale(0.7, 0.5);
@@ -179,10 +180,16 @@ class Menu extends Phaser.Scene {
         TableButton.on('pointerdown', () => {
             mostrarMejoresPuntuaciones();
         });
-        
 
 
 
+
+    }
+
+    shutdown() {
+        if (this.music && this.music.isPlaying) {
+            this.music.stop(); // Detener la música cuando la escena se apaga
+        }
     }
 
     update() {
@@ -498,6 +505,10 @@ class GameScene extends Phaser.Scene {
 
         this.load.audio('deathSound', 'Sounds/Damage.mp3');
         this.load.audio('GameOverSound', 'Sounds/MisionFailed.mp3');
+        this.load.audio('CollectCopper', 'Sounds/CollectCopper.mp3');
+        this.load.audio('DamageEnemy', 'Sounds/DamageEnemy.mp3');
+        this.load.audio('FinishLevel', 'Sounds/FinishLevel.mp3');
+        this.load.audio('Pistola', 'Sounds/Pistola.mp3');
     }
 
     create() {
@@ -508,6 +519,17 @@ class GameScene extends Phaser.Scene {
                 this.handleNumberPress(event.key);
             }
         });
+
+        let playerName = localStorage.getItem("playerName") || "Jugador";
+        let level = "Nivel 1";
+
+        let cajaRelleno = document.querySelector('.CajaRelleno');
+
+
+        cajaRelleno.innerHTML = `
+        <p><strong>Alias  : </strong>${playerName}</p>
+        <p><strong>Nivel  : </strong>${level}</p>
+    `;
 
         //Funcion para adaptar la imagen en el canvas
         let levelWidth = this.sys.game.config.width * 4;
@@ -556,7 +578,20 @@ class GameScene extends Phaser.Scene {
         this.platforms.create(3200, 610, 'ground').setScale(2).refreshBody().setAlpha(0);
         this.platforms.create(3600, 610, 'ground').setScale(2).refreshBody().setAlpha(0);
         this.platforms.create(4000, 610, 'ground').setScale(2).refreshBody().setAlpha(0);
+
+        this.platforms.create(400, 300, 'ground');
         this.platforms.create(800, 450, 'ground');
+        this.platforms.create(900, 350, 'ground');
+        this.platforms.create(1200, 200, 'ground');
+        this.platforms.create(1400, 300, 'ground');
+        this.platforms.create(1500, 450, 'ground');
+        this.platforms.create(2000, 150, 'ground');
+        this.platforms.create(2300, 250, 'ground');
+        this.platforms.create(2700, 100, 'ground');
+        this.platforms.create(3300, 400, 'ground');
+        this.platforms.create(3500, 500, 'ground');
+        this.platforms.create(3700, 220, 'ground');
+        this.platforms.create(4000, 450, 'ground');
 
         this.specialItemGroup = this.physics.add.group();
 
@@ -674,6 +709,563 @@ class GameScene extends Phaser.Scene {
                 console.log("Nueva bomba");
             }
         }
+
+        if (this.score >= 1000 && !this.GameOver) {
+            // this.showCongratulations();
+            console.log("Felicidades");
+            // return;
+        }
+
+        if (this.cursors.left.isDown) {
+            this.player.setVelocityX(-160);
+            // Usamos la animación 'right' pero volteamos el sprite
+            this.player.anims.play('right', true);
+            this.player.setFlipX(true);
+        } else if (this.cursors.right.isDown) {
+            this.player.setVelocityX(160);
+            // Reproducimos la animación normal sin volteo
+            this.player.anims.play('right', true);
+            this.player.setFlipX(false);
+        } else {
+            this.player.setVelocityX(0);
+            this.player.anims.play('turn');
+        }
+
+        if (this.cursors.up.isDown && this.player.body.touching.down) {
+            this.player.setVelocityY(-330);
+        }
+        if (this.spaceBar.isDown && this.canShoot == true) {
+            this.Shoot();
+            this.canShoot = false;
+        }
+
+        // Logica para crear el objeto especial
+        if (!this.hasSpawnedSpecialItem && this.player.x >= 500) {
+            this.spawnSpecialItem();
+            this.hasSpawnedSpecialItem = true;
+        }
+
+        this.specialItemGroup.children.iterate(specialItem => {
+            if (specialItem.active && specialItem.countdownText) {
+                specialItem.countdownText.x = specialItem.x;
+                specialItem.countdownText.y = specialItem.y - 50;
+            }
+        });
+    }
+
+    spawnSpecialItem = function () {
+        // Crea el ítem un poco adelante del jugador para que sea visible
+        let x = this.player.x + Phaser.Math.Between(200, 400);
+        let y = Phaser.Math.Between(50, 300);
+
+        // Crea el sprite y lo añade al grupo
+        let specialItem = this.specialItemGroup.create(x, y, 'specialItem');
+
+        // Ajusta físicas
+        specialItem.setBounce(0.5);
+        specialItem.setCollideWorldBounds(true);
+        // Haz que colisione con las plataformas
+        this.physics.add.collider(specialItem, this.platforms);
+
+        // Detectar colisión/solapamiento con el jugador
+        this.physics.add.overlap(this.player, specialItem, this.collectSpecialItem, null, this);
+
+        // --- CONTADOR SOBRE EL ÍTEM ---
+        let timeLeft = 5; // (5 segundos)
+        let countdownText = this.add.text(
+            specialItem.x,
+            specialItem.y - 50,
+            timeLeft,
+            { fontSize: '20px', fill: '#fff' }
+        ).setOrigin(0.5);
+
+        // Guarda la referencia en el propio ítem para manipularlo luego
+        specialItem.countdownText = countdownText;
+        specialItem.timeLeft = timeLeft;
+
+        // Cada segundo, disminuimos el contador
+        this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                // Si el ítem ya no existe (recogido o destruido), no hacemos nada
+                if (!specialItem.active) return;
+
+                specialItem.timeLeft--;
+                specialItem.countdownText.setText(specialItem.timeLeft);
+
+                if (specialItem.timeLeft <= 0) {
+                    // Se acabó el tiempo: destruir ítem y su texto
+                    specialItem.destroy();
+                    specialItem.countdownText.destroy();
+                    console.log("El objeto especial desapareció por tiempo.");
+                }
+            },
+            repeat: 4 // Repetimos 4 veces. (0 -> 5s totales)
+        });
+    };
+
+    collectSpecialItem = function (player, specialItem) {
+        // Desactivarlo inmediatamente (ya no colisiona)
+        specialItem.disableBody(true, true);
+
+        // Destruir el texto si existe
+        if (specialItem.countdownText) {
+            specialItem.countdownText.destroy();
+        }
+
+        // Sumar 100 puntos al marcador
+        this.score += 100;
+        this.scoreText.setText(`Score: ${this.score}`);
+
+        // (Opcional) Guardar en localStorage
+        let playerName = localStorage.getItem('playerName') || "Jugador";
+        guardarJugador(playerName, this.score);
+
+        console.log("¡Recogiste el objeto especial y ganaste 100 puntos!");
+    };
+
+    collectStar(player, star) {
+        star.disableBody(true, true);
+        this.score += 10;
+
+        this.sound.play('CollectCopper'); 
+        
+
+        let playerName = localStorage.getItem('playerName') || "Jugador";
+        guardarJugador(playerName, this.score);
+
+        this.scoreText.setText('Score: ' + this.score);
+
+        mostrarMejoresPuntuaciones();
+
+        if (this.stars.countActive(true) === 0) {
+            this.stars.children.iterate(child => {
+                child.enableBody(true, child.x, 0, true, true);
+            });
+
+            for (let i = 0; i < 3; i++) {
+                let x = (this.player.x < 400)
+                    ? Phaser.Math.Between(400, 800)
+                    : Phaser.Math.Between(0, 400);
+                let bomb = this.bombs.create(x, 16, 'bomb1');
+                bomb.setBounce(1);
+                bomb.setCollideWorldBounds(true);
+                bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+                bomb.allowGravity = false;
+            }
+        }
+    }
+
+    hitBomb(player, bomb) {
+        this.lives -= 1;
+        this.updateLivesUI()
+
+        this.sound.play('deathSound'); 
+
+        if (this.lives <= 0 && !this.GameOver) {
+            this.GameOver = true;
+            this.isGameOver();
+
+            console.log("Game Over");
+        }
+    }
+
+    updateLivesUI() {
+        // Limpiar el contenedor antes de volver a renderizar las vidas
+        this.livesContainer.innerHTML = "";
+
+
+        for (let i = 0; i < this.lives; i++) {
+            let img = document.createElement("img");
+            img.src = "assets/SpritesUI/Vidas.png"; // Ruta correcta de la imagen de vida
+            img.classList.add("life-icon"); // Clase CSS para darle estilo
+            this.livesContainer.appendChild(img);
+        }
+    }
+
+    Shoot() {
+        let bullet = this.bullets.create(this.player.x, this.player.y, 'bomb');
+        bullet.setScale(0.5);
+        bullet.body.allowGravity = false;
+
+        // Determinar la dirección del disparo usando flipX
+        let direction = this.player.flipX ? -1 : 1;
+        bullet.setVelocityX(1000 * direction);
+    }
+
+    isGameOver() {
+        this.physics.pause();
+        this.player.setTint(0xff0000);
+
+        // Detener el sonido de impacto si está reproduciéndose
+        if (this.bombSound && this.bombSound.isPlaying) {
+            this.bombSound.stop();
+        }
+
+        if (!this.deathSoundPlayed) {
+            this.sound.play('GameOverSound');
+            this.deathSoundPlayed = true;
+        }
+
+        const cam = this.cameras.main;
+        const centerX = this.cameras.main.centerX;
+        const centerY = this.cameras.main.centerY;
+
+        let bloodBackground = this.add.image(centerX, centerY, 'Sangre')
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(9);
+        bloodBackground.setDisplaySize(cam.width, cam.height);
+
+        let gameOverImage = this.add.image(centerX, centerY, 'gameOver')
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(10);
+
+        // Definir escala para los botones (por ejemplo, 0.5 para hacerlos más pequeños)
+        const buttonScale = 0.5;
+        // Offset vertical para situarlos debajo de la imagen Game Over
+        const offsetY = 150;
+        // Offset horizontal para colocarlos uno a cada lado
+        const offsetX = 80;
+
+        // Botón para reiniciar el nivel
+        let restartButton = this.add.image(centerX - offsetX, centerY + offsetY, 'Reiniciar')
+            .setInteractive()
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(10)
+            .setScale(buttonScale);
+
+        restartButton.on('pointerdown', () => {
+            this.lives = 3;
+            this.etapa2finalizada = false;
+            this.GameOver = false;
+            this.delay = 2000;
+            this.bossFase = 1;
+            this.isInvulnerable = false;
+            this.bossSpeed = 100;
+            this.scene.restart();
+            this.scene.start('scene-game');
+
+        });
+
+        let menuButton = this.add.image(centerX + offsetX, centerY + offsetY, 'Home')
+            .setInteractive()
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(10)
+            .setScale(buttonScale);
+        menuButton.on('pointerdown', () => {
+            let cajaRelleno = document.querySelector('.CajaRelleno');
+            if (cajaRelleno) {
+                cajaRelleno.innerHTML = ''; // Limpiar el contenido HTML
+            }
+
+            this.lives = 3;
+            this.etapa2finalizada = false;
+            this.GameOver = false;
+            this.delay = 2000;
+            this.bossFase = 1;
+            this.isInvulnerable = false;
+            this.bossSpeed = 100;
+            this.scene.start('menu-scene');
+        });
+    }
+
+    hitEnemy = function (bullet, bomb) {
+        console.log("Impacto");
+
+        bullet.destroy(); // Eliminar la bala
+        this.sound.play('DamageEnemy'); 
+
+        if (bomb.health === undefined) {
+            bomb.health = 5; // Asignar vida
+        }
+
+        bomb.health -= 1;
+
+        //Cambiar color al recibir daño 
+        bomb.setTint(0xff0000);
+        setTimeout(() => {
+            bomb.clearTint(); // Volver al color normal después de 200ms
+        }, 200);
+
+        if (bomb.health <= 0) {
+            bomb.destroy();
+            this.score += 20;
+            this.scoreText.setText(`Score: ${this.score}`);
+        }
+    };
+
+    handleNumberPress(number) {
+        switch (number) {
+            case "1":
+                this.scene.start("scene-game")
+                break;
+            case "2":
+                this.scene.start("scene-game2")
+                break;
+            case "3":
+                this.scene.start("scene-boss")
+                break;
+            default:
+                console.log("Número sin acción asignada.");
+                break;
+        }
+    }
+}
+
+class GameScene2 extends Phaser.Scene {
+  
+    constructor() {
+        super("scene-game2");
+        this.player = null;
+        this.stars = null;
+        this.bommbs = null;
+        this.platforms = null;
+        this.cursors = null;
+        this.score = 0;
+        this.GameOver = false;
+        this.scoreText = null;
+        this.spaceBar = null;
+        this.bullets = null;
+        this.lives = 3;
+    }
+
+    preload() {
+        // Elementos UI
+        this.load.image('gameOver', 'img/MenuUI/gameOver.png');
+        this.load.image('bomb1', 'assets/Personajes/Enemigo.png', { frameWidth: 32, frameHeight: 32 });
+        this.load.image('bomb2', 'assets/Personajes/Enemigo2.png', { frameWidth: 32, frameHeight: 32 });
+        this.load.image('enemigo3', 'assets/Personajes/enemigo3.png', { frameWidth: 40, frameHeight: 40 });
+        this.load.image('sky', 'img/nivel2/fondo2.png');
+        this.load.image('ground', 'img/nivel2/ground.png');
+        this.load.image('star', 'assets/Consumibles/star.png');
+        this.load.image('specialItem', 'assets/Consumibles/starPlus.png');
+        this.load.image('bomb', 'img/nivel2/bullet.png');
+        this.load.image('Sangre', 'img/GameOver/sangre.png');
+
+        this.load.spritesheet('dude', 'assets/Personajes/German_Soldier1.png', { frameWidth: 32, frameHeight: 30 });
+        this.load.spritesheet('dude1', 'assets/Personajes/dude.png', { frameWidth: 32, frameHeight: 30 });
+        
+        this.load.image('Home', 'assets/Botones/HomeBtn.png');
+        this.load.image('Reiniciar', 'assets/Botones/ReturnBtn.png');
+
+        this.load.audio('deathSound', 'Sounds/Damage.mp3');
+    }
+
+    create() {
+        //cambiar entre escenas provicional
+        this.input.keyboard.on("keydown", (event) => {
+            if (event.key >= "0" && event.key <= "9") {
+                console.log("Presionaste el número: " + event.key);
+                this.handleNumberPress(event.key);
+            }
+        });
+
+        //Funcion para adaptar la imagen en el canvas
+        let levelWidth = this.sys.game.config.width * 4;
+        let canvasWidth = this.sys.game.config.width;
+        let canvasHeight = this.sys.game.config.height;
+
+        // Obtener la imagen original del recurso 'sky'
+        let skyImage = this.textures.get('sky').getSourceImage();
+
+        // Calcular los factores de escala para que la imagen se adapte al canvas
+        let scaleX = canvasWidth / skyImage.width;
+        let scaleY = canvasHeight / skyImage.height;
+
+        // Crear el tileSprite y ajustar la escala del tile
+        this.sky = this.add.tileSprite(0, 0, canvasWidth, canvasHeight, 'sky')
+            .setOrigin(0, 0)
+            .setScrollFactor(0)
+            .setDepth(-3);
+
+        // Ajusta la escala del tile para que la imagen se muestre a tamaño completo
+        this.sky.tileScaleX = scaleX;
+        this.sky.tileScaleY = scaleY;
+
+
+        let selectedCharacter = localStorage.getItem("selectedCharacter") || 'player1';
+        let characterMap = {
+            player1: 'dude',
+            player2: 'dude1'
+        };
+        let characterKey = characterMap[selectedCharacter] || 'dude';
+
+        // Jugador
+        this.player = this.physics.add.sprite(100, 450, characterKey);
+        this.player.setBounce(0.01);
+        this.player.setCollideWorldBounds(true);
+
+        // Plataformas
+        this.platforms = this.physics.add.staticGroup();
+        this.platforms.create(400, 610, 'ground').setScale(2).refreshBody();
+        this.platforms.create(800, 610, 'ground').setScale(2).refreshBody();
+        this.platforms.create(1200, 610, 'ground').setScale(2).refreshBody();
+        this.platforms.create(1600, 610, 'ground').setScale(2).refreshBody();
+        this.platforms.create(2000, 610, 'ground').setScale(2).refreshBody();
+        this.platforms.create(2400, 610, 'ground').setScale(2).refreshBody();
+        this.platforms.create(2800, 610, 'ground').setScale(2).refreshBody();
+        this.platforms.create(3200, 610, 'ground').setScale(2).refreshBody();
+        this.platforms.create(3600, 610, 'ground').setScale(2).refreshBody();
+        this.platforms.create(4000, 610, 'ground').setScale(2).refreshBody();
+        this.platforms.create(800, 450, 'ground');
+        this.platforms.create(1200, 300, 'ground');
+        this.platforms.create(2000, 450, 'ground');
+        this.platforms.create(2500, 300, 'ground');
+        this.platforms.create(3000, 200, 'ground');
+
+        
+
+
+        this.specialItemGroup = this.physics.add.group();
+
+        // Animaciones del jugador
+        this.anims.create({
+            key: 'left',
+            frames: this.anims.generateFrameNumbers(characterKey, { start: 6, end: 11 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'turn',
+            frames: [{ key: characterKey, frame: 0 }],
+            frameRate: 20
+        });
+
+        this.anims.create({
+            key: 'right',
+            frames: this.anims.generateFrameNumbers(characterKey, { start: 6, end: 11 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        // Controles
+        this.cursors = this.input.keyboard.createCursorKeys();
+        //barra espaciadora
+        this.spaceBar = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        // Estrellas
+        this.stars = this.physics.add.group({
+            key: 'star',
+            repeat: 11,
+            setXY: { x: 12, y: 0, stepX: 70 }
+        });
+
+        this.stars.children.iterate(child => {
+            child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+        });
+
+        // Bombas
+        this.bombs = this.physics.add.group();
+        this.bombB = this.physics.add.group();
+     
+
+ 
+        //balas
+        this.bullets = this.physics.add.group();
+        this.canShoot = true;
+
+        this.shootTimer = this.time.addEvent({
+            delay: 200, // Tiempo entre disparos (en milisegundos)
+            callback: () => { this.canShoot = true; },
+            callbackScope: this,
+            loop: true
+        });
+
+        // Puntuación
+        this.scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#000' });
+
+        // Contenedor en el HTML donde se mostrarán las imágenes de las vidas
+        this.livesContainer = document.getElementById("lives-container");
+
+        // Cargar las imágenes de las vidas
+        this.updateLivesUI();
+
+        // Colisiones
+        this.physics.add.collider(this.player, this.platforms);
+        this.physics.add.collider(this.stars, this.platforms);
+        this.physics.add.collider(this.bombs, this.platforms);
+        this.physics.add.collider(this.bombB, this.platforms);
+        this.physics.add.collider(this.specialItemGroup, this.platforms);
+
+        // Verificar si el jugador recoge una estrella
+        this.physics.add.overlap(this.player, this.stars, this.collectStar, null, this);
+        this.physics.add.collider(this.player, this.bombs,this.hitBomb, null, this);
+
+
+        // Hacer que la camara siga al jugador
+        this.cameras.main.startFollow(this.player);
+        this.cameras.main.setBounds(0, 0, levelWidth, this.sys.game.config.height);
+
+        // Asegurar que la cámara cubra todo el nivel
+        this.cameras.main.setBounds(0, 0, levelWidth, this.sys.game.config.height);
+        this.physics.add.overlap(this.bullets, this.bombs, this.hitEnemy, null, this);
+        this.physics.add.overlap(this.bullets, this.bombB, this.hitEnemyB, null, this);
+
+        // Asegurar que el jugador pueda moverse dentro de los límites del mundo
+        this.physics.world.setBounds(0, 0, levelWidth, this.sys.game.config.height);
+        this.lastSpawnX = this.player.x; // Inicializar la última posición de spawn
+
+        let Newenemy = this.bombB.create(3000,100,"enemigo3");
+        Newenemy.setGravityY(0)
+        Newenemy.health=20;
+        console.log("nuevo enemigo")
+
+
+    }
+
+    update() {
+        if (this.gameOver) return;
+        let distanceThreshold = 500; // Cada cuántos píxeles se generan objetos
+        let nextSpawnX = this.lastSpawnX + distanceThreshold;
+
+        if (this.player.x > nextSpawnX) {
+            this.lastSpawnX = this.player.x;
+
+
+            // Cantidad de objetos a generar
+            let numStars = 7;
+            let numBombs = 2;
+            let numBombs2 = 1;
+            // Obtener los límites del mundo
+            let worldWidth = this.physics.world.bounds.width;
+            let groundY = this.physics.world.bounds.height - 50; // Ajusta según la altura del suelo
+
+            // Generar varias estrellas
+            for (let i = 0; i < numStars; i++) {
+                let starX = this.player.x + Phaser.Math.Between(100, 300);
+                let starY = Phaser.Math.Between(50, 300);
+                let newStar = this.stars.create(starX, starY, 'star');
+                newStar.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+                console.log("Nueva estrella");
+            }
+            //Genera varios enemigos (bombas2)
+            for (let i = 0; i < numBombs2; i++) {
+                let bombX = Phaser.Math.Between(50, worldWidth - 50);
+                // Crear el enemigo en la parte inferior de la pantalla
+                let bomb = this.bombs.create(bombX, groundY, 'bomb2');
+                // Ajustar físicas
+                bomb.setCollideWorldBounds(true); // No sale de la pantalla
+                bomb.setVelocityX(Phaser.Math.Between(50, 150)); // Movimiento horizontal
+                bomb.body.allowGravity = false; // No flota ni brinca
+            }
+
+            // Generar varios enemigos (bombas)
+            for (let i = 0; i < numBombs; i++) {
+                let bombX = this.player.x + Phaser.Math.Between(200, 400);
+                let bomb = this.bombs.create(bombX, 16, 'bomb1');
+                bomb.setBounce(1);
+                bomb.setCollideWorldBounds(true);
+                bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+                console.log("Nueva bomba");
+            }
+
+
+        }
+
 
         if (this.score >= 50 && !this.GameOver) {
             // this.showCongratulations();
@@ -820,12 +1412,7 @@ class GameScene extends Phaser.Scene {
 
     hitBomb(player, bomb) {
         this.lives -= 1;
-        this.updateLivesUI()
-
-        if (!this.bombSound || !this.bombSound.isPlaying) {
-            this.bombSound = this.sound.add('deathSound');
-            this.bombSound.play();
-        }
+        this.updateLivesUI();
 
         if (this.lives <= 0 && !this.GameOver) {
             this.GameOver = true;
@@ -853,54 +1440,41 @@ class GameScene extends Phaser.Scene {
         bullet.setScale(0.5);
         bullet.body.allowGravity = false;
 
-        // Determinar la dirección del disparo usando flipX
+        // Determinar la dirección del disparo
         let direction = this.player.flipX ? -1 : 1;
-        bullet.setVelocityX(1000 * direction);
+        bullet.setVelocityX(400 * direction);
     }
 
     isGameOver() {
         this.physics.pause();
         this.player.setTint(0xff0000);
 
-        // Detener el sonido de impacto si está reproduciéndose
-        if (this.bombSound && this.bombSound.isPlaying) {
-            this.bombSound.stop();
-        }
-
         if (!this.deathSoundPlayed) {
-            this.sound.play('GameOverSound');
+            this.sound.play('deathSound');
             this.deathSoundPlayed = true;
         }
 
         const cam = this.cameras.main;
         const centerX = this.cameras.main.centerX;
         const centerY = this.cameras.main.centerY;
-
+        
         let bloodBackground = this.add.image(centerX, centerY, 'Sangre')
-            .setOrigin(0.5)
-            .setScrollFactor(0)
-            .setDepth(9);
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(9);
         bloodBackground.setDisplaySize(cam.width, cam.height);
 
         let gameOverImage = this.add.image(centerX, centerY, 'gameOver')
-            .setOrigin(0.5)
-            .setScrollFactor(0)
-            .setDepth(10);
-
-        // Definir escala para los botones (por ejemplo, 0.5 para hacerlos más pequeños)
-        const buttonScale = 0.5;
-        // Offset vertical para situarlos debajo de la imagen Game Over
-        const offsetY = 150;
-        // Offset horizontal para colocarlos uno a cada lado
-        const offsetX = 80;
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(10);
 
         // Botón para reiniciar el nivel
-        let restartButton = this.add.image(centerX - offsetX, centerY + offsetY, 'Reiniciar')
-            .setInteractive()
-            .setOrigin(0.5)
-            .setScrollFactor(0)
-            .setDepth(10)
-            .setScale(buttonScale);
+        let restartButton = this.add.image(centerX, centerY, 'Reiniciar')
+        .setInteractive()
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(10);
 
         restartButton.on('pointerdown', () => {
             this.scene.restart();
@@ -908,17 +1482,39 @@ class GameScene extends Phaser.Scene {
             this.deathSoundPlayed = false;
         });
 
-        let menuButton = this.add.image(centerX + offsetX, centerY + offsetY, 'Home')
+        let menuButton = this.add.image(centerX, centerY, 'Home')
             .setInteractive()
-            .setOrigin(0.5)
-            .setScrollFactor(0)
-            .setDepth(10)
-            .setScale(buttonScale);
+            .setDepth(10);
         menuButton.on('pointerdown', () => {
             this.scene.start('menu-scene');
         });
     }
+    hitEnemyB(bullet,bomb){
+        console.log("Impacto");
 
+        bullet.destroy(); // Eliminar la bala
+
+        if (bomb.health === undefined) {
+            bomb.health = 30; // Asignar vida
+        }
+
+        bomb.health -= 1;
+
+        bomb.setTint(0xff0000);
+        setTimeout(() => {
+            bomb.clearTint(); 
+        }, 200);
+
+        if (bomb.health <= 0) {
+            bomb.destroy();
+            this.score += 100;
+            this.time.delayedCall(5000, () => {
+                console.log("Han pasado 5 segundos");
+                // Aquí puedes reanudar acciones, como reiniciar el juego, mover un objeto, etc.
+            }, [], this)
+            this.scene.start("scene-boos")
+        }
+    };
     hitEnemy = function (bullet, bomb) {
         console.log("Impacto");
 
@@ -951,201 +1547,6 @@ class GameScene extends Phaser.Scene {
             case "2":
                 this.scene.start("scene-game2")
                 break;
-            case "3":
-                this.scene.start("scene-boss")
-                break;
-            default:
-                console.log("Número sin acción asignada.");
-                break;
-        }
-    }
-}
-
-class GameScene2 extends Phaser.Scene {
-    constructor() {
-        super("scene-game2");
-        this.player = null;
-        this.stars = null;
-        this.bombs = null;
-        this.platforms = null;
-        this.cursors = null;
-        this.score = 0;
-        this.gameOver = false;
-        this.scoreText = null;
-        this.spaceBar = null;
-        this.bullets = null;
-    }
-
-    preload() {
-        this.load.image('sky', 'assets/sky.png');
-        this.load.image('ground', 'assets/platform.png');
-        this.load.image('star', 'assets/star.png');
-        this.load.image('bomb', 'assets/bomb.png');
-        this.load.spritesheet('dude', 'assets/dude.png', { frameWidth: 32, frameHeight: 48 });
-    }
-
-    create() {
-        //cambiar entre escenas provicional
-        this.input.keyboard.on("keydown", (event) => {
-            if (event.key >= "0" && event.key <= "9") {
-                console.log("Presionaste el número: " + event.key);
-                this.handleNumberPress(event.key);
-            }
-        });
-        // Fondo
-        this.add.image(400, 300, 'sky');
-
-        // Plataformas
-        this.platforms = this.physics.add.staticGroup();
-        this.platforms.create(400, 568, 'ground').setScale(2).refreshBody();
-
-        // Jugador
-        this.player = this.physics.add.sprite(100, 450, 'dude');
-        this.player.setBounce(0.01);
-        this.player.setCollideWorldBounds(true);
-
-        // Animaciones del jugador
-        this.anims.create({
-            key: 'left',
-            frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
-            frameRate: 10,
-            repeat: -1
-        });
-
-        this.anims.create({
-            key: 'turn',
-            frames: [{ key: 'dude', frame: 4 }],
-            frameRate: 20
-        });
-
-        this.anims.create({
-            key: 'right',
-            frames: this.anims.generateFrameNumbers('dude', { start: 5, end: 8 }),
-            frameRate: 10,
-            repeat: -1
-        });
-
-        // Controles
-        this.cursors = this.input.keyboard.createCursorKeys();
-        //barra espaciadora
-        this.spaceBar = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-        // Estrellas
-        this.stars = this.physics.add.group({
-            key: 'star',
-            repeat: 11,
-            setXY: { x: 12, y: 0, stepX: 70 }
-        });
-
-        this.stars.children.iterate(child => {
-            child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
-        });
-
-        // Bombas
-        this.bombs = this.physics.add.group();
-
-        //balas
-        this.bullets = this.physics.add.group();
-        this.canShoot = true;
-        this.shootTimer = this.time.addEvent({
-            delay: 300, // Tiempo entre disparos (en milisegundos)
-            callback: () => { this.canShoot = true; },
-            callbackScope: this,
-            loop: true
-        });
-
-        // Puntuación
-        this.scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#000' });
-
-        // Colisiones
-        this.physics.add.collider(this.player, this.platforms);
-        this.physics.add.collider(this.stars, this.platforms);
-        this.physics.add.collider(this.bombs, this.platforms);
-
-        // Verificar si el jugador recoge una estrella
-        this.physics.add.overlap(this.player, this.stars, this.collectStar, null, this);
-        this.physics.add.collider(this.player, this.bombs, this.hitBomb, null, this);
-    }
-
-    update() {
-        if (this.gameOver) return;
-
-        if (this.cursors.left.isDown) {
-            this.player.setVelocityX(-160);
-            this.player.anims.play('left', true);
-        } else if (this.cursors.right.isDown) {
-            this.player.setVelocityX(160);
-            this.player.anims.play('right', true);
-        } else {
-            this.player.setVelocityX(0);
-            this.player.anims.play('turn');
-        }
-
-        if (this.cursors.up.isDown && this.player.body.touching.down) {
-            this.player.setVelocityY(-330);
-        }
-        if (this.spaceBar.isDown && this.canShoot == true) {
-            this.Shoot();
-            this.canShoot = false;
-        }
-
-
-
-
-        this.bullets.children.iterate(bullet => {
-            if (bullet.x > 800 || bullet.x < 0) {
-                bullet.destroy();
-            }
-        });
-
-    }
-
-    collectStar(player, star) {
-        star.disableBody(true, true);
-        this.score += 10;
-        this.scoreText.setText('Score: ' + this.score);
-
-        if (this.stars.countActive(true) === 0) {
-            this.stars.children.iterate(child => {
-                child.enableBody(true, child.x, 0, true, true);
-            });
-
-            let x = (this.player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
-            let bomb = this.bombs.create(x, 16, 'bomb');
-            bomb.setBounce(1);
-            bomb.setCollideWorldBounds(true);
-            bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
-            bomb.allowGravity = false;
-        }
-    }
-
-    hitBomb(player, bomb) {
-        this.physics.pause();
-        this.player.setTint(0xff0000);
-        this.player.anims.play('turn');
-        this.gameOver = true;
-    }
-
-    Shoot() {
-        let bullet = this.bullets.create(this.player.x, this.player.y, 'bomb');
-        bullet.setScale(0.5);
-        bullet.body.allowGravity = false;
-
-        // Determinar la dirección del disparo
-        let direction = this.player.anims.currentAnim.key === 'left' ? -1 : 1;
-        bullet.setVelocityX(400 * direction);
-    }
-
-    handleNumberPress(number) {
-        switch (number) {
-            case "1":
-                this.scene.start("scene-game")
-                break;
-            case "2":
-                this.scene.start("scene-game2")
-                break;
-            case "3":
-                    this.scene.start("scene-boss")
-                    break;
             default:
                 console.log("Número sin acción asignada.");
                 break;
@@ -1155,7 +1556,7 @@ class GameScene2 extends Phaser.Scene {
 class Boss extends Phaser.Scene {
     constructor() {
         super("scene-boss");
-        this.bossVul=true;
+        this.bossVul = true;
         this.player = null;
         this.stars = null;
         this.bombs = null;
@@ -1167,12 +1568,12 @@ class Boss extends Phaser.Scene {
         this.spaceBar = null;
         this.bullets = null;
         this.bossSpeed = 100; // Velocidad del jefe
-        this.bossDirection = -1; 
-        this.bossFase=1;
+        this.bossDirection = -1;
+        this.bossFase = 1;
         this.etapa2finalizada = false;
-        this.lastArrowPressed=null;
+        this.lastArrowPressed = null;
         this.delay = 2000;
-        this.lives=3;
+        this.lives = 3;
         this.isInvulnerable = false;
     }
     preload() {
@@ -1194,7 +1595,7 @@ class Boss extends Phaser.Scene {
 
         this.load.audio('deathSound', 'Sounds/Damage.mp3');
         this.load.image("boss", 'assets/Personajes/German_Soldier1.png', { frameWidth: 32, frameHeight: 30 });
-        
+
     }
     create() {
         //cambiar entre escenas provicional
@@ -1251,9 +1652,9 @@ class Boss extends Phaser.Scene {
         this.spaceBar = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         // electrividad
         this.rayos = this.physics.add.group();
-        
-        
-        
+
+
+
         // Bombas
         this.bombs = this.physics.add.group();
 
@@ -1268,7 +1669,7 @@ class Boss extends Phaser.Scene {
         });
 
         // Puntuación
-        
+
         this.scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#000' });
 
         this.gameOver = false;
@@ -1278,23 +1679,23 @@ class Boss extends Phaser.Scene {
         this.updateLivesUI();
         // Colisiones
         this.physics.add.collider(this.player, this.platforms);
-        
+
         this.physics.add.collider(this.bombs, this.platforms);
 
         // Verificar si el jugador recoge una estrella
-        
+
         this.physics.add.collider(this.player, this.bombs, this.hitBomb, null, this);
-        
+
         // Agregar el jefe en la pantalla
         this.boss = this.physics.add.sprite(700, 500, "dude").setScale(4);
         this.boss.setImmovable(true); // Evita que el jefe sea empujado
         this.boss.setCollideWorldBounds(true);
         this.bossHealth = 100; // Vida máxima del jefe
         this.bossMaxHealth = 100;
-    
+
         this.healthBar = this.add.graphics();
-        this.updateHealthBar();    
-    
+        this.updateHealthBar();
+
         this.boss.body.allowGravity = false;
         this.physics.add.overlap(this.bullets, this.boss, this.takeDamage, null, this);
         this.physics.add.overlap(this.bombs, this.player, this.hitBomb, null, this);
@@ -1311,7 +1712,7 @@ class Boss extends Phaser.Scene {
                     if (!this.rayosCooldown) {
                         this.CrearRayos();
                         this.rayosCooldown = true; // Activar el cooldown
-        
+
                         // Establecer un temporizador para permitir la siguiente llamada después de un retraso
                         this.time.delayedCall(3000, () => {
                             this.rayosCooldown = false; // Restablecer el cooldown después de 2 segundos
@@ -1322,13 +1723,13 @@ class Boss extends Phaser.Scene {
             callbackScope: this,
             loop: true
         });
-        
+
     }
     update() {
         if (this.gameOver) return;
         if (this.boss && this.boss.body) {
             this.boss.setVelocityX(this.bossSpeed * this.bossDirection);
-    
+
             // Cambiar dirección si toca los bordes del mundo
             if (this.boss.body.blocked.left) {
                 this.bossDirection = 1; // Moverse a la derecha
@@ -1341,32 +1742,32 @@ class Boss extends Phaser.Scene {
             // Usamos la animación 'right' pero volteamos el sprite
             this.player.anims.play('right', true);
             this.player.setFlipX(true);
-            this.lastArrowPressed='left';
+            this.lastArrowPressed = 'left';
         } else if (this.cursors.right.isDown) {
             this.player.setVelocityX(160);
             // Reproducimos la animación normal sin volteo
             this.player.anims.play('right', true);
             this.player.setFlipX(false);
-            this.lastArrowPressed='right';
+            this.lastArrowPressed = 'right';
         } else {
             this.player.setVelocityX(0);
             this.player.anims.play('turn');
         }
 
         if (this.bossDirection == -1) {
-            
+
             this.boss.anims.play('right', true);
             this.boss.setFlipX(true);
-            
+
         } else if (this.bossDirection == 1) {
 
             this.boss.anims.play('right', true);
             this.boss.setFlipX(false);
-            
-        } 
-        if(this.bossSpeed==0) {
+
+        }
+        if (this.bossSpeed == 0) {
             this.boss.anims.play('turn');
-            
+
         }
 
         if (this.cursors.up.isDown && this.player.body.touching.down) {
@@ -1383,7 +1784,7 @@ class Boss extends Phaser.Scene {
                 }
             }
         });
-        
+
     }
     Shoot() {
         let bullet = this.bullets.create(this.player.x, this.player.y, 'bomb');
@@ -1421,36 +1822,36 @@ class Boss extends Phaser.Scene {
     }
     takeDamage(jefe, bala) {
         bala.destroy(); // Eliminar la bala
-    
+
         // Si el jefe es invulnerable, no recibe daño
         if (this.bossInvulnerable) {
             console.log("¡El jefe es invulnerable y no recibe daño!");
             return;
         }
-    
+
         // Restar vida al jefe
         let damage = 3; // Ajusta el daño según sea necesario
         this.bossHealth = Math.max(0, this.bossHealth - damage);
-    
+
         // Actualizar la barra de vida
         this.updateHealthBar();
-    
+
         this.boss.setTint(0xff0000); // Cambia el color a rojo
         this.time.delayedCall(200, () => {
             this.boss.clearTint(); // Regresa a su color original después de 200ms
         });
-    
+
         // Fase de furia si la vida baja al 50%
         if (this.bossHealth <= this.bossMaxHealth * 0.5 && !this.etapa2finalizada) {
             this.etapa2finalizada = true; // Evitar múltiples activaciones
             this.bossFase = 2;
             this.bossInvulnerable = true; // Hacer invulnerable al jefe
             console.log("¡El jefe está furioso! Se vuelve invulnerable y deja de disparar.");
-    
+
             // Cambiar comportamiento
             this.bossSpeed = 0;
-             // Detener disparos
-    
+            // Detener disparos
+
             // Después de 10 segundos, vuelve a la normalidad y puede recibir daño nuevamente
             this.time.delayedCall(10000, () => {
                 this.bossFase = 1;
@@ -1460,7 +1861,7 @@ class Boss extends Phaser.Scene {
                 this.bossShootTimer.paused = false; // Reanudar disparos
             }, [], this);
         }
-    
+
         // Destruir al jefe si su vida llega a 0
         if (this.bossHealth <= 0) {
             this.boss.destroy(); // Destruye completamente al jefe
@@ -1470,11 +1871,11 @@ class Boss extends Phaser.Scene {
     hitBomb(player, bomb) {
         bomb.destroy();
         if (this.isInvulnerable) return; // No recibe daño si es invulnerable
-    
+
         this.lives -= 1;
-        
+
         this.updateLivesUI();
-    
+
         if (this.lives <= 0 && !this.GameOver) {
             this.GameOver = true;
             this.isGameOver();
@@ -1484,10 +1885,10 @@ class Boss extends Phaser.Scene {
     }
     hitBoss(player, boss) {
         if (this.isInvulnerable) return;
-    
+
         this.lives -= 1;
         this.updateLivesUI();
-    
+
         if (this.lives <= 0 && !this.GameOver) {
             this.GameOver = true;
             this.isGameOver();
@@ -1495,7 +1896,7 @@ class Boss extends Phaser.Scene {
             this.activateInvulnerability(); // Activar invulnerabilidad después de recibir daño
         }
     }
-    updateLivesUI () {
+    updateLivesUI() {
         // Limpiar el contenedor antes de volver a renderizar las vidas
         this.livesContainer.innerHTML = "";
 
@@ -1509,23 +1910,23 @@ class Boss extends Phaser.Scene {
     };
     BossShoot() {
         if (!this.boss || !this.boss.body) return;
-    
+
         if (this.etapa2finalizada) {
             // En la fase 2, el jefe dispara ráfagas rápidas durante 5 segundos
             console.log("Fase 2: Ataque rápido");
-    
+
             this.time.delayedCall(5000, () => {
                 this.bossSpeed = 100;
-                this.delay =8000; // Restaurar velocidad normal de disparo
+                this.delay = 8000; // Restaurar velocidad normal de disparo
             }, [], this);
-    
+
             for (let i = 0; i < 3; i++) { // Disparar 3 balas en ráfaga
                 this.time.delayedCall(i * 300, () => {
                     this.spawnBossProjectile();
                 }, [], this);
             }
-    
-        } 
+
+        }
         else {
             // En la fase 1, el jefe dispara una sola bala dirigida al jugador
             this.spawnBossProjectile();
@@ -1534,14 +1935,14 @@ class Boss extends Phaser.Scene {
     spawnBossProjectile() {
         let bomb = this.bombs.create(this.boss.x, this.boss.y, 'ball');
         bomb.setScale(0.06);
-        
+
 
         bomb.body.allowGravity = false;
-    
+
         // Calcular dirección hacia el jugador
         let angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, this.player.x, this.player.y);
         let speed = 180;
-    
+
         // Aplicar velocidad en función del ángulo
         bomb.setVelocityX(Math.cos(angle) * speed);
         bomb.setVelocityY(Math.sin(angle) * speed);
@@ -1586,15 +1987,15 @@ class Boss extends Phaser.Scene {
             .setScale(buttonScale);
 
         restartButton.on('pointerdown', () => {
-            this.etapa2finalizada=false;
-            this.GameOver=false;
-            this.delay=2000;
-            this.bossFase=1;
+            this.etapa2finalizada = false;
+            this.GameOver = false;
+            this.delay = 2000;
+            this.bossFase = 1;
             this.isInvulnerable = false;
             this.bossSpeed = 100;
             this.scene.restart();
             this.scene.start('scene-boss');
-            
+
         });
 
         let menuButton = this.add.image(centerX + offsetX, centerY + offsetY, 'Home')
@@ -1604,10 +2005,10 @@ class Boss extends Phaser.Scene {
             .setDepth(10)
             .setScale(buttonScale);
         menuButton.on('pointerdown', () => {
-            this.etapa2finalizada=false;
-            this.GameOver=false;
-            this.delay=2000;
-            this.bossFase=1;
+            this.etapa2finalizada = false;
+            this.GameOver = false;
+            this.delay = 2000;
+            this.bossFase = 1;
             this.isInvulnerable = false;
             this.bossSpeed = 100;
             this.scene.start('menu-scene');
@@ -1615,10 +2016,10 @@ class Boss extends Phaser.Scene {
     }
     activateInvulnerability() {
         if (this.isInvulnerable) return; // Evita activar varias veces seguidas
-        
+
         this.isInvulnerable = true;
         this.player.setTint(0x888888); // Color visual para indicar invulnerabilidad
-    
+
         this.time.delayedCall(2000, () => { // 2 segundos de invulnerabilidad
             this.isInvulnerable = false;
             this.player.clearTint();
@@ -1627,7 +2028,7 @@ class Boss extends Phaser.Scene {
     CrearRayos() {
         let x = 0;
         let rayos = []; // Almacenar los rayos creados
-    
+
         // Crear los rayos y almacenarlos en un array
         for (let i = 0; i < 13; i++) {
             let ray = this.rayos.create(x, 0, 'rayo');
@@ -1637,9 +2038,9 @@ class Boss extends Phaser.Scene {
             rayos.push(ray); // Guardar el rayo en el array
             x += 70;
         }
-    
+
         let index = 0; // Índice para activar la gravedad de cada rayo
-    
+
         this.time.addEvent({
             delay: 600, // Intervalo de tiempo entre cada activación (ajústalo según necesites)
             callback: () => {
