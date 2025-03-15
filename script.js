@@ -508,7 +508,7 @@ class GameScene extends Phaser.Scene {
         this.load.audio('CollectCopper', 'Sounds/CollectCopper.mp3');
         this.load.audio('DamageEnemy', 'Sounds/DamageEnemy.mp3');
         this.load.audio('FinishLevel', 'Sounds/FinishLevel.mp3');
-        this.load.audio('Pistola', 'Sounds/Pistola.mp3');
+        this.load.audio('sonido-pistola', 'Sounds/Pistola.mp3');
     }
 
     create() {
@@ -888,6 +888,7 @@ class GameScene extends Phaser.Scene {
         let bullet = this.bullets.create(this.player.x, this.player.y, 'bomb');
         bullet.setScale(0.5);
         bullet.body.allowGravity = false;
+        this.sound.play('sonido-pistola');
 
         // Determinar la dirección del disparo usando flipX
         let direction = this.player.flipX ? -1 : 1;
@@ -1450,6 +1451,7 @@ class GameScene2 extends Phaser.Scene {
         let bullet = this.bullets.create(this.player.x, this.player.y, 'bullet');
         bullet.setScale(0.5);
         bullet.body.allowGravity = false;
+        this.sound.play('sonido-pistola');
 
         // Determinar la dirección del disparo
         let direction = this.player.flipX ? -1 : 1;
