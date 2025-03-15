@@ -33,57 +33,136 @@ class Menu extends Phaser.Scene {
         super("menu-scene")
     }
     preload() {
-        this.load.image('menuBackground', 'img/ImgHero.jpg'); // Fondo del menú
-        this.load.image('playButton', 'assets/btn.png'); // Botón jugar
-        this.load.image('controlsButton', 'assets/btn.png'); // Botón controles
-        this.load.image('creditsButton', 'assets/btn.png'); // Botón créditos
+
+        this.load.image('menuBackground', 'img/MenuPrincipal/FondoHero2.jpg'); // Fondo del menú
+        this.load.image('Logo', 'img/MenuPrincipal/LogoJuego.png');
+
+        this.load.image('playButton', 'assets/Botones/PlayBtn.png'); // Botón jugar
+        this.load.image('controlsButton', 'assets/Botones/ControlsBtn.png'); // Botón jugar
+        this.load.image('creditsButton', 'assets/Botones/SettinBtn.png'); // Botón jugar
+
+        this.load.image('playButtonHover', 'assets/Botones/Playcol_Button.png'); // Botón jugar
+        this.load.image('controlsButtonHover', 'assets/Botones/Controlscol_Button.png'); // Botón jugar
+        this.load.image('creditsButtonHover', 'assets/Botones/Settingscol_Button.png'); // Botón jugar
+
         this.load.audio('backgroundMusic', 'Sounds/MusicaPrincipal.mp3'); // Carga el archivo de audio
+        this.load.audio('hoverSound', 'Sounds/ClickSonido.mp3');
     }
     create() {
-        // Agregar fondo
+
         let background = this.add.image(400, 300, 'menuBackground');
         background.setScale(
             this.sys.game.config.width / background.width,
             this.sys.game.config.height / background.height
-
         );
 
 
-        var music = this.sound.add('backgroundMusic');
-        music.play({
-            loop: true
+        let music = this.sound.add('backgroundMusic');
+        music.play({ loop: true });
+
+        let logo = this.add.image(400, -100, 'Logo');
+        logo.setScale(0.7, 0.5);
+
+        // Tween para mover el logo desde arriba hasta su posición final
+        this.tweens.add({
+            targets: logo,
+            y: 150,
+            ease: 'easeOut',
+            duration: 1500,
+            delay: 200
         });
 
-        // Botón de jugar
-        this.add.image(400, 300, 'playButton')
-            .setScale(0.15)
-            .setInteractive()
-            .on('pointerdown', () => this.scene.start('PlayerSetupScene'));
 
-        // Botón de controles
-        this.add.image(400, 400, 'controlsButton')
-            .setScale(0.15)
-            .setInteractive()
-            .on('pointerdown', () => this.scene.start('ControlsScene'));
+        // Botón Play
+        let playButton = this.add.image(400, 900, 'playButton')
+            .setDisplaySize(250, 60)
+            .setInteractive();
 
-        // Botón de créditos
-        this.add.image(400, 500, 'creditsButton')
-            .setScale(0.15)
-            .setInteractive()
-            .on('pointerdown', () => this.scene.start('CreditsScene'));
+        playButton.on('pointerover', () => {
+            playButton.setTexture('playButtonHover'); // Cambia la imagen del botón
+            this.input.setDefaultCursor('pointer');     // Cambia el cursor
+            this.sound.play('hoverSound');                // Reproduce el sonido
+        });
+
+        playButton.on('pointerout', () => {
+            playButton.setTexture('playButton');          // Restaura la imagen original
+            this.input.setDefaultCursor('default');       // Restaura el cursor
+        });
+
+        // Botón Controls
+        let controlsButton = this.add.image(400, 900, 'controlsButton')
+            .setDisplaySize(250, 60)
+            .setInteractive();
+
+        controlsButton.on('pointerover', () => {
+            controlsButton.setTexture('controlsButtonHover'); // Cambia la imagen del botón
+            this.input.setDefaultCursor('pointer');             // Cambia el cursor
+            this.sound.play('hoverSound');                      // Reproduce el sonido
+        });
+
+        controlsButton.on('pointerout', () => {
+            controlsButton.setTexture('controlsButton');        // Restaura la imagen original
+            this.input.setDefaultCursor('default');             // Restaura el cursor
+        });
+
+        // Botón Credits
+        let creditsButton = this.add.image(400, 900, 'creditsButton')
+            .setDisplaySize(250, 60)
+            .setInteractive();
+
+        creditsButton.on('pointerover', () => {
+            creditsButton.setTexture('creditsButtonHover'); // Cambia la imagen del botón
+            this.input.setDefaultCursor('pointer');           // Cambia el cursor
+            this.sound.play('hoverSound');                    // Reproduce el sonido
+        });
+
+        creditsButton.on('pointerout', () => {
+            creditsButton.setTexture('creditsButton');        // Restaura la imagen original
+            this.input.setDefaultCursor('default');           // Restaura el cursor
+        });
+
+        // Tween para que el botón de jugar se mueva a su posición final
+        this.tweens.add({
+            targets: playButton,
+            y: 300,
+            ease: 'easeOut',
+            duration: 1500,
+            delay: 500
+        });
+        this.tweens.add({
+            targets: controlsButton,
+            y: 400,
+            ease: 'easeOut',
+            duration: 1500,
+            delay: 600
+        });
+        this.tweens.add({
+            targets: creditsButton,
+            y: 500,
+            ease: 'easeOut',
+            duration: 1500,
+            delay: 700
+        });
+
+        // Asignar interactividad a los botones
+        playButton.on('pointerdown', () => this.scene.start('PlayerSetupScene'));
+        controlsButton.on('pointerdown', () => this.scene.start('ControlsScene'));
+        creditsButton.on('pointerdown', () => this.scene.start('CreditsScene'));
     }
 
     update() {
+
     }
 }
+
 class ControlsScene extends Phaser.Scene {
     constructor() {
         super("ControlsScene");
     }
     preload() {
         // Carga la imagen y el botón para volver al menú
-        this.load.image('controlsImage', 'assets/mountain.png'); // Imagen de controles
-        this.load.image('backButton', 'assets/btn.png'); // Botón para volver al menú
+        this.load.image('controlsImage', 'assets/ElementosNivel/mountain.png'); // Imagen de controles
+        this.load.image('backButton', 'assets/SpritesUI/btn.png'); // Botón para volver al menú
     }
     create() {
         // Muestra la imagen de controles
@@ -104,8 +183,8 @@ class CreditsScene extends Phaser.Scene {
     }
     preload() {
         // Carga la imagen y el botón para volver al menú
-        this.load.image('controlsImage', 'assets/mountain.png'); // Imagen de controles
-        this.load.image('backButton', 'assets/btn.png'); // Botón para volver al menú
+        this.load.image('controlsImage', 'assets/ElementosNivel/mountain.png'); // Imagen de controles
+        this.load.image('backButton', 'assets/SpritesUI/btn.png'); // Botón para volver al menú
     }
     create() {
         // Muestra la imagen de controles
@@ -128,8 +207,12 @@ class PlayerSetupScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('player1', 'img/SoldadoDerecha.png');
-        this.load.image('player2', 'img/SoldadoIzquierda.png');
+        this.load.image('player1', 'img/MenuNombre/SoldadoDerecha1.png');
+        this.load.image('player2', 'img/MenuNombre/SoldadoIzquierda1.png');
+
+        this.load.image('playButton', 'assets/Botones/PlayBtn.png'); // Botón jugar
+        this.load.image('playButtonHover', 'assets/Botones/Playcol_Button.png'); // Botón jugar
+        
     }
 
     create() {
@@ -141,7 +224,7 @@ class PlayerSetupScene extends Phaser.Scene {
         input.placeholder = ". . .";
         input.style.position = "absolute";
         input.style.top = "20%";
-        input.style.left = "39%";
+        input.style.left = "38%";
         input.style.transform = "translate(-50%, -50%)";
         input.style.padding = "0px 60px";
         input.style.fontSize = "3.5rem";
@@ -152,7 +235,7 @@ class PlayerSetupScene extends Phaser.Scene {
         input.style.border = "none";
         input.style.outline = "none";
 
-        input.style.backgroundImage = "url('assets/PlacaNombre2.png')";
+        input.style.backgroundImage = "url('assets/SpritesUI/PlacaNombre2.png')";
         input.style.backgroundSize = "cover";
         input.style.backgroundRepeat = "no-repeat";
         input.style.backgroundPosition = "center";
@@ -179,7 +262,7 @@ class PlayerSetupScene extends Phaser.Scene {
         let selectedCharacter = null;
 
         // Personaje 1
-        let player1 = this.add.image(600, 320, 'player1')
+        let player1 = this.add.image(630, 360, 'player1')
             .setInteractive()
             .on('pointerover', () => {
                 // Aumenta la escala y añade un tint sutil para dar efecto de brillo
@@ -208,7 +291,7 @@ class PlayerSetupScene extends Phaser.Scene {
             });
 
         // Personaje 2
-        let player2 = this.add.image(140, 350, 'player2')
+        let player2 = this.add.image(120, 420, 'player2')
             .setInteractive()
             .on('pointerover', () => {
                 // Aumenta la escala y añade un efecto de brillo
@@ -252,32 +335,34 @@ class PlayerSetupScene extends Phaser.Scene {
                 return;
             }
 
-            if (localStorage.getItem(alias)) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Alias existente',
-                    text: 'Este alias ya ha sido registrado. Por favor, elige otro.'
-                });
-                return;
-            }
-
+            /*       if (localStorage.getItem(alias)) {
+                      Swal.fire({
+                          icon: 'warning',
+                          title: 'Alias existente',
+                          text: 'Este alias ya ha sido registrado. Por favor, elige otro.'
+                      });
+                      return;
+                  }
+       */
             guardarJugador(alias, 0);
             mostrarMejoresPuntuaciones();
             console.log("Jugador:", alias);
 
-            localStorage.setItem(alias, JSON.stringify({ alias: alias, score: 0 ,selectedCharacter}));
+            localStorage.setItem(alias, JSON.stringify({ score: 0 }));
+            localStorage.setItem("playerName", alias);
+            localStorage.setItem("selectedCharacter", selectedCharacter);
 
             input.remove();
             button.remove();
 
-            this.scene.start('GameScene');
+            this.scene.start('scene-game');
         };
-
     }
 }
 
 //Funciones del gameplay
 class GameScene extends Phaser.Scene {
+    
     constructor() {
         super("scene-game");
         this.player = null;
@@ -286,18 +371,32 @@ class GameScene extends Phaser.Scene {
         this.platforms = null;
         this.cursors = null;
         this.score = 0;
-        this.gameOver = false;
+        this.GameOver = false;
         this.scoreText = null;
         this.spaceBar = null;
         this.bullets = null;
+        this.lives = 3;
     }
 
     preload() {
-        this.load.image('sky', 'assets/sky.png');
-        this.load.image('ground', 'assets/platform.png');
-        this.load.image('star', 'assets/star.png');
-        this.load.image('bomb', 'assets/bomb.png');
-        this.load.spritesheet('dude', 'assets/dude.png', { frameWidth: 32, frameHeight: 48 });
+        // Elementos UI
+        this.load.image('gameOver', 'img/MenuUI/gameOver.png');
+        this.load.image('bomb1', 'assets/Personajes/Enemigo.png', { frameWidth: 32, frameHeight: 32 });
+
+        this.load.image('sky', 'img/Nivel1/Fondo.jpg');
+        this.load.image('ground', 'assets/ElementosNivel/platform.png');
+        this.load.image('star', 'assets/Consumibles/star.png');
+        this.load.image('specialItem', 'assets/Consumibles/starPlus.png');
+        this.load.image('bomb', 'assets/Personajes/bomb.png');
+        this.load.image('Sangre', 'img/GameOver/sangre.png');
+
+        this.load.spritesheet('dude', 'assets/Personajes/German_Soldier1.png', { frameWidth: 32, frameHeight: 30 });
+        this.load.spritesheet('dude1', 'assets/Personajes/dude.png', { frameWidth: 32, frameHeight: 30 });
+        
+        this.load.image('Home', 'assets/Botones/HomeBtn.png');
+        this.load.image('Reiniciar', 'assets/Botones/ReturnBtn.png');
+
+        this.load.audio('deathSound', 'Sounds/Damage.mp3');
     }
 
     create() {
@@ -308,36 +407,75 @@ class GameScene extends Phaser.Scene {
                 this.handleNumberPress(event.key);
             }
         });
+
+        //Funcion para adaptar la imagen en el canvas
         let levelWidth = this.sys.game.config.width * 4;
-        // Fondo
-        this.add.image(400, 300, 'sky');
+        let canvasWidth = this.sys.game.config.width;
+        let canvasHeight = this.sys.game.config.height;
+
+        // Obtener la imagen original del recurso 'sky'
+        let skyImage = this.textures.get('sky').getSourceImage();
+
+        // Calcular los factores de escala para que la imagen se adapte al canvas
+        let scaleX = canvasWidth / skyImage.width;
+        let scaleY = canvasHeight / skyImage.height;
+
+        // Crear el tileSprite y ajustar la escala del tile
+        this.sky = this.add.tileSprite(0, 0, canvasWidth, canvasHeight, 'sky')
+            .setOrigin(0, 0)
+            .setScrollFactor(0)
+            .setDepth(-3);
+
+        // Ajusta la escala del tile para que la imagen se muestre a tamaño completo
+        this.sky.tileScaleX = scaleX;
+        this.sky.tileScaleY = scaleY;
+
+
+        let selectedCharacter = localStorage.getItem("selectedCharacter") || 'player1';
+        let characterMap = {
+            player1: 'dude',
+            player2: 'dude1'
+        };
+        let characterKey = characterMap[selectedCharacter] || 'dude';
+
+        // Jugador
+        this.player = this.physics.add.sprite(100, 450, characterKey);
+        this.player.setBounce(0.01);
+        this.player.setCollideWorldBounds(true);
 
         // Plataformas
         this.platforms = this.physics.add.staticGroup();
-        this.platforms.create(400, 568, 'ground').setScale(2).refreshBody();
+        this.platforms.create(400, 610, 'ground').setScale(2).refreshBody().setAlpha(0);
+        this.platforms.create(800, 610, 'ground').setScale(2).refreshBody().setAlpha(0);
+        this.platforms.create(1200, 610, 'ground').setScale(2).refreshBody().setAlpha(0);
+        this.platforms.create(1600, 610, 'ground').setScale(2).refreshBody().setAlpha(0);
+        this.platforms.create(2000, 610, 'ground').setScale(2).refreshBody().setAlpha(0);
+        this.platforms.create(2400, 610, 'ground').setScale(2).refreshBody().setAlpha(0);
+        this.platforms.create(2800, 610, 'ground').setScale(2).refreshBody().setAlpha(0);
+        this.platforms.create(3200, 610, 'ground').setScale(2).refreshBody().setAlpha(0);
+        this.platforms.create(3600, 610, 'ground').setScale(2).refreshBody().setAlpha(0);
+        this.platforms.create(4000, 610, 'ground').setScale(2).refreshBody().setAlpha(0);
+        this.platforms.create(800, 450, 'ground');
 
-        // Jugador
-        this.player = this.physics.add.sprite(100, 450, 'dude');
-        this.player.setBounce(0.01);
-        this.player.setCollideWorldBounds(true);
+        this.specialItemGroup = this.physics.add.group();
 
         // Animaciones del jugador
         this.anims.create({
             key: 'left',
-            frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
+            frames: this.anims.generateFrameNumbers(characterKey, { start: 6, end: 11 }),
             frameRate: 10,
             repeat: -1
         });
 
         this.anims.create({
             key: 'turn',
-            frames: [{ key: 'dude', frame: 4 }],
+            frames: [{ key: characterKey, frame: 0 }],
             frameRate: 20
         });
 
         this.anims.create({
             key: 'right',
-            frames: this.anims.generateFrameNumbers('dude', { start: 5, end: 8 }),
+            frames: this.anims.generateFrameNumbers(characterKey, { start: 6, end: 11 }),
             frameRate: 10,
             repeat: -1
         });
@@ -363,6 +501,7 @@ class GameScene extends Phaser.Scene {
         //balas
         this.bullets = this.physics.add.group();
         this.canShoot = true;
+
         this.shootTimer = this.time.addEvent({
             delay: 300, // Tiempo entre disparos (en milisegundos)
             callback: () => { this.canShoot = true; },
@@ -373,10 +512,17 @@ class GameScene extends Phaser.Scene {
         // Puntuación
         this.scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#000' });
 
+        // Contenedor en el HTML donde se mostrarán las imágenes de las vidas
+        this.livesContainer = document.getElementById("lives-container");
+
+        // Cargar las imágenes de las vidas
+        this.updateLivesUI();
+
         // Colisiones
         this.physics.add.collider(this.player, this.platforms);
         this.physics.add.collider(this.stars, this.platforms);
         this.physics.add.collider(this.bombs, this.platforms);
+        this.physics.add.collider(this.specialItemGroup, this.platforms);
 
         // Verificar si el jugador recoge una estrella
         this.physics.add.overlap(this.player, this.stars, this.collectStar, null, this);
@@ -389,6 +535,7 @@ class GameScene extends Phaser.Scene {
 
         // Asegurar que la cámara cubra todo el nivel
         this.cameras.main.setBounds(0, 0, levelWidth, this.sys.game.config.height);
+        this.physics.add.overlap(this.bullets, this.bombs, this.hitEnemy, null, this);
 
         // Asegurar que el jugador pueda moverse dentro de los límites del mundo
         this.physics.world.setBounds(0, 0, levelWidth, this.sys.game.config.height);
@@ -397,13 +544,52 @@ class GameScene extends Phaser.Scene {
 
     update() {
         if (this.gameOver) return;
+        let distanceThreshold = 500; // Cada cuántos píxeles se generan objetos
+        let nextSpawnX = this.lastSpawnX + distanceThreshold;
+
+        if (this.player.x > nextSpawnX) {
+            this.lastSpawnX = this.player.x;
+
+            // Cantidad de objetos a generar
+            let numStars = 7;
+            let numBombs = 2;
+
+            // Generar varias estrellas
+            for (let i = 0; i < numStars; i++) {
+                let starX = this.player.x + Phaser.Math.Between(100, 300);
+                let starY = Phaser.Math.Between(50, 300);
+                let newStar = this.stars.create(starX, starY, 'star');
+                newStar.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+                console.log("Nueva estrella");
+            }
+
+            // Generar varios enemigos (bombas)
+            for (let i = 0; i < numBombs; i++) {
+                let bombX = this.player.x + Phaser.Math.Between(200, 400);
+                let bomb = this.bombs.create(bombX, 16, 'bomb1');
+                bomb.setBounce(1);
+                bomb.setCollideWorldBounds(true);
+                bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+                console.log("Nueva bomba");
+            }
+        }
+
+        if (this.score >= 50 && !this.GameOver) {
+            // this.showCongratulations();
+            console.log("Felicidades");
+            // return;
+        }
 
         if (this.cursors.left.isDown) {
             this.player.setVelocityX(-160);
-            this.player.anims.play('left', true);
+            // Usamos la animación 'right' pero volteamos el sprite
+            this.player.anims.play('right', true);
+            this.player.setFlipX(true);
         } else if (this.cursors.right.isDown) {
             this.player.setVelocityX(160);
+            // Reproducimos la animación normal sin volteo
             this.player.anims.play('right', true);
+            this.player.setFlipX(false);
         } else {
             this.player.setVelocityX(0);
             this.player.anims.play('turn');
@@ -417,32 +603,143 @@ class GameScene extends Phaser.Scene {
             this.canShoot = false;
         }
 
+        // Logica para crear el objeto especial
+        if (!this.hasSpawnedSpecialItem && this.player.x >= 500) {
+            this.spawnSpecialItem();
+            this.hasSpawnedSpecialItem = true;
+        }
+
+        this.specialItemGroup.children.iterate(specialItem => {
+            if (specialItem.active && specialItem.countdownText) {
+                specialItem.countdownText.x = specialItem.x;
+                specialItem.countdownText.y = specialItem.y - 50;
+            }
+        });
     }
+
+    spawnSpecialItem = function () {
+        // Crea el ítem un poco adelante del jugador para que sea visible
+        let x = this.player.x + Phaser.Math.Between(200, 400);
+        let y = Phaser.Math.Between(50, 300);
+
+        // Crea el sprite y lo añade al grupo
+        let specialItem = this.specialItemGroup.create(x, y, 'specialItem');
+
+        // Ajusta físicas
+        specialItem.setBounce(0.5);
+        specialItem.setCollideWorldBounds(true);
+        // Haz que colisione con las plataformas
+        this.physics.add.collider(specialItem, this.platforms);
+
+        // Detectar colisión/solapamiento con el jugador
+        this.physics.add.overlap(this.player, specialItem, this.collectSpecialItem, null, this);
+
+        // --- CONTADOR SOBRE EL ÍTEM ---
+        let timeLeft = 5; // (5 segundos)
+        let countdownText = this.add.text(
+            specialItem.x,
+            specialItem.y - 50,
+            timeLeft,
+            { fontSize: '20px', fill: '#fff' }
+        ).setOrigin(0.5);
+
+        // Guarda la referencia en el propio ítem para manipularlo luego
+        specialItem.countdownText = countdownText;
+        specialItem.timeLeft = timeLeft;
+
+        // Cada segundo, disminuimos el contador
+        this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                // Si el ítem ya no existe (recogido o destruido), no hacemos nada
+                if (!specialItem.active) return;
+
+                specialItem.timeLeft--;
+                specialItem.countdownText.setText(specialItem.timeLeft);
+
+                if (specialItem.timeLeft <= 0) {
+                    // Se acabó el tiempo: destruir ítem y su texto
+                    specialItem.destroy();
+                    specialItem.countdownText.destroy();
+                    console.log("El objeto especial desapareció por tiempo.");
+                }
+            },
+            repeat: 4 // Repetimos 4 veces. (0 -> 5s totales)
+        });
+    };
+
+    collectSpecialItem = function (player, specialItem) {
+        // Desactivarlo inmediatamente (ya no colisiona)
+        specialItem.disableBody(true, true);
+
+        // Destruir el texto si existe
+        if (specialItem.countdownText) {
+            specialItem.countdownText.destroy();
+        }
+
+        // Sumar 100 puntos al marcador
+        this.score += 100;
+        this.scoreText.setText(`Score: ${this.score}`);
+
+        // (Opcional) Guardar en localStorage
+        let playerName = localStorage.getItem('playerName') || "Jugador";
+        guardarJugador(playerName, this.score);
+
+        console.log("¡Recogiste el objeto especial y ganaste 100 puntos!");
+    };
 
     collectStar(player, star) {
         star.disableBody(true, true);
         this.score += 10;
+
+        let playerName = localStorage.getItem('playerName') || "Jugador";
+        guardarJugador(playerName, this.score);
+
         this.scoreText.setText('Score: ' + this.score);
+
+        mostrarMejoresPuntuaciones();
 
         if (this.stars.countActive(true) === 0) {
             this.stars.children.iterate(child => {
                 child.enableBody(true, child.x, 0, true, true);
             });
 
-            let x = (this.player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
-            let bomb = this.bombs.create(x, 16, 'bomb');
-            bomb.setBounce(1);
-            bomb.setCollideWorldBounds(true);
-            bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
-            bomb.allowGravity = false;
+            for (let i = 0; i < 3; i++) {
+                let x = (this.player.x < 400)
+                    ? Phaser.Math.Between(400, 800)
+                    : Phaser.Math.Between(0, 400);
+                let bomb = this.bombs.create(x, 16, 'bomb1');
+                bomb.setBounce(1);
+                bomb.setCollideWorldBounds(true);
+                bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+                bomb.allowGravity = false;
+            }
         }
     }
 
     hitBomb(player, bomb) {
-        this.physics.pause();
-        this.player.setTint(0xff0000);
-        this.player.anims.play('turn');
-        this.gameOver = true;
+        this.lives -= 1;
+        this.updateLivesUI();
+
+        if (this.lives <= 0 && !this.GameOver) {
+            this.GameOver = true;
+            this.isGameOver();
+
+            console.log("Game Over");
+        }
+    }
+
+    updateLivesUI() {
+        // Limpiar el contenedor antes de volver a renderizar las vidas
+        this.livesContainer.innerHTML = "";
+
+
+        for (let i = 0; i < this.lives; i++) {
+            let img = document.createElement("img");
+            img.src = "assets/SpritesUI/Vidas.png"; // Ruta correcta de la imagen de vida
+            img.classList.add("life-icon"); // Clase CSS para darle estilo
+            this.livesContainer.appendChild(img);
+        }
     }
 
     Shoot() {
@@ -454,6 +751,75 @@ class GameScene extends Phaser.Scene {
         let direction = this.player.anims.currentAnim.key === 'left' ? -1 : 1;
         bullet.setVelocityX(400 * direction);
     }
+
+    isGameOver() {
+        this.physics.pause();
+        this.player.setTint(0xff0000);
+
+        if (!this.deathSoundPlayed) {
+            this.sound.play('deathSound');
+            this.deathSoundPlayed = true;
+        }
+
+        const cam = this.cameras.main;
+        const centerX = this.cameras.main.centerX;
+        const centerY = this.cameras.main.centerY;
+        
+        let bloodBackground = this.add.image(centerX, centerY, 'Sangre')
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(9);
+        bloodBackground.setDisplaySize(cam.width, cam.height);
+
+        let gameOverImage = this.add.image(centerX, centerY, 'gameOver')
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(10);
+
+        // Botón para reiniciar el nivel
+        let restartButton = this.add.image(centerX, centerY, 'Reiniciar')
+        .setInteractive()
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(10);
+
+        restartButton.on('pointerdown', () => {
+            this.scene.restart();
+            this.lives = 3;
+            this.deathSoundPlayed = false;
+        });
+
+        let menuButton = this.add.image(centerX, centerY, 'Home')
+            .setInteractive()
+            .setDepth(10);
+        menuButton.on('pointerdown', () => {
+            this.scene.start('menu-scene');
+        });
+    }
+
+    hitEnemy = function (bullet, bomb) {
+        console.log("Impacto");
+
+        bullet.destroy(); // Eliminar la bala
+
+        if (bomb.health === undefined) {
+            bomb.health = 5; // Asignar vida
+        }
+
+        bomb.health -= 1;
+
+        //Cambiar color al recibir daño 
+        bomb.setTint(0xff0000);
+        setTimeout(() => {
+            bomb.clearTint(); // Volver al color normal después de 200ms
+        }, 200);
+
+        if (bomb.health <= 0) {
+            bomb.destroy();
+            this.score += 20;
+            this.scoreText.setText(`Score: ${this.score}`);
+        }
+    };
 
     handleNumberPress(number) {
         switch (number) {
@@ -643,6 +1009,7 @@ class GameScene2 extends Phaser.Scene {
         let direction = this.player.anims.currentAnim.key === 'left' ? -1 : 1;
         bullet.setVelocityX(400 * direction);
     }
+
     handleNumberPress(number) {
         switch (number) {
             case "1":
@@ -831,6 +1198,7 @@ class Boss extends Phaser.Scene {
         let direction = this.player.anims.currentAnim.key === 'left' ? -1 : 1;
         bullet.setVelocityX(400 * direction);
     }
+
     handleNumberPress(number) {
         switch (number) {
             case "1":
