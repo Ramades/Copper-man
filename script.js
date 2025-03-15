@@ -1193,14 +1193,14 @@ class GameScene2 extends Phaser.Scene {
     preload() {
         // Elementos UI
         this.load.image('gameOver', 'img/MenuUI/gameOver.png');
-        this.load.image('bomb1', 'assets/Personajes/Enemigo.png', { frameWidth: 32, frameHeight: 32 });
+        this.load.image('bomb12', 'assets/Personajes/Enemigo.png', { frameWidth: 32, frameHeight: 32 });
         this.load.image('bomb2', 'assets/Personajes/Enemigo2.png', { frameWidth: 32, frameHeight: 32 });
         this.load.image('enemigo3', 'assets/Personajes/enemigo3.png', { frameWidth: 40, frameHeight: 40 });
-        this.load.image('sky', 'img/nivel2/fondo2.png');
-        this.load.image('ground', 'img/nivel2/ground.png');
+        this.load.image('sky2', 'img/nivel2/fondo2.png');
+        this.load.image('ground2', 'img/nivel2/ground.png');
         this.load.image('star', 'assets/Consumibles/star.png');
         this.load.image('specialItem', 'assets/Consumibles/starPlus.png');
-        this.load.image('bomb', 'img/nivel2/bullet.png');
+        this.load.image('bullet', 'img/nivel2/bullet.png');
         this.load.image('Sangre', 'img/GameOver/sangre.png');
 
         this.load.spritesheet('dude', 'assets/Personajes/German_Soldier1.png', { frameWidth: 32, frameHeight: 30 });
@@ -1221,20 +1221,30 @@ class GameScene2 extends Phaser.Scene {
             }
         });
 
+        let playerName = localStorage.getItem("playerName") || "Jugador";
+        let level = "Nivel 1";
+
+        let cajaRelleno = document.querySelector('.CajaRelleno');
+
+
+        cajaRelleno.innerHTML = `
+        <p><strong>Alias  : </strong>${playerName}</p>
+        <p><strong>Nivel  : </strong>${level}</p>
+            `;
         //Funcion para adaptar la imagen en el canvas
         let levelWidth = this.sys.game.config.width * 4;
         let canvasWidth = this.sys.game.config.width;
         let canvasHeight = this.sys.game.config.height;
 
         // Obtener la imagen original del recurso 'sky'
-        let skyImage = this.textures.get('sky').getSourceImage();
+        let skyImage = this.textures.get('sky2').getSourceImage();
 
         // Calcular los factores de escala para que la imagen se adapte al canvas
         let scaleX = canvasWidth / skyImage.width;
         let scaleY = canvasHeight / skyImage.height;
 
         // Crear el tileSprite y ajustar la escala del tile
-        this.sky = this.add.tileSprite(0, 0, canvasWidth, canvasHeight, 'sky')
+        this.sky = this.add.tileSprite(0, 0, canvasWidth, canvasHeight, 'sky2')
             .setOrigin(0, 0)
             .setScrollFactor(0)
             .setDepth(-3);
@@ -1258,21 +1268,21 @@ class GameScene2 extends Phaser.Scene {
 
         // Plataformas
         this.platforms = this.physics.add.staticGroup();
-        this.platforms.create(400, 610, 'ground').setScale(2).refreshBody();
-        this.platforms.create(800, 610, 'ground').setScale(2).refreshBody();
-        this.platforms.create(1200, 610, 'ground').setScale(2).refreshBody();
-        this.platforms.create(1600, 610, 'ground').setScale(2).refreshBody();
-        this.platforms.create(2000, 610, 'ground').setScale(2).refreshBody();
-        this.platforms.create(2400, 610, 'ground').setScale(2).refreshBody();
-        this.platforms.create(2800, 610, 'ground').setScale(2).refreshBody();
-        this.platforms.create(3200, 610, 'ground').setScale(2).refreshBody();
-        this.platforms.create(3600, 610, 'ground').setScale(2).refreshBody();
-        this.platforms.create(4000, 610, 'ground').setScale(2).refreshBody();
-        this.platforms.create(800, 450, 'ground');
-        this.platforms.create(1200, 300, 'ground');
-        this.platforms.create(2000, 450, 'ground');
-        this.platforms.create(2500, 300, 'ground');
-        this.platforms.create(3000, 200, 'ground');
+        this.platforms.create(400, 610, 'ground2').setScale(2).refreshBody();
+        this.platforms.create(800, 610, 'ground2').setScale(2).refreshBody();
+        this.platforms.create(1200, 610, 'ground2').setScale(2).refreshBody();
+        this.platforms.create(1600, 610, 'ground2').setScale(2).refreshBody();
+        this.platforms.create(2000, 610, 'ground2').setScale(2).refreshBody();
+        this.platforms.create(2400, 610, 'ground2').setScale(2).refreshBody();
+        this.platforms.create(2800, 610, 'ground2').setScale(2).refreshBody();
+        this.platforms.create(3200, 610, 'ground2').setScale(2).refreshBody();
+        this.platforms.create(3600, 610, 'ground2').setScale(2).refreshBody();
+        this.platforms.create(4000, 610, 'ground2').setScale(2).refreshBody();
+        this.platforms.create(800, 450, 'ground2');
+        this.platforms.create(1200, 300, 'ground2');
+        this.platforms.create(2000, 450, 'ground2');
+        this.platforms.create(2500, 300, 'ground2');
+        this.platforms.create(3000, 200, 'ground2');
 
 
 
@@ -1326,7 +1336,7 @@ class GameScene2 extends Phaser.Scene {
         this.canShoot = true;
 
         this.shootTimer = this.time.addEvent({
-            delay: 200, // Tiempo entre disparos (en milisegundos)
+            delay: 500, // Tiempo entre disparos (en milisegundos)
             callback: () => { this.canShoot = true; },
             callbackScope: this,
             loop: true
@@ -1382,7 +1392,6 @@ class GameScene2 extends Phaser.Scene {
         if (this.player.x > nextSpawnX) {
             this.lastSpawnX = this.player.x;
 
-
             // Cantidad de objetos a generar
             let numStars = 7;
             let numBombs = 2;
@@ -1413,7 +1422,7 @@ class GameScene2 extends Phaser.Scene {
             // Generar varios enemigos (bombas)
             for (let i = 0; i < numBombs; i++) {
                 let bombX = this.player.x + Phaser.Math.Between(200, 400);
-                let bomb = this.bombs.create(bombX, 16, 'bomb1');
+                let bomb = this.bombs.create(bombX, 16, 'bomb12');
                 bomb.setBounce(1);
                 bomb.setCollideWorldBounds(true);
                 bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
@@ -1541,10 +1550,10 @@ class GameScene2 extends Phaser.Scene {
     collectStar(player, star) {
         star.disableBody(true, true);
         this.score += 10;
-
+        this.sound.play('CollectCopper');
         let playerName = localStorage.getItem('playerName') || "Jugador";
         guardarJugador(playerName, this.score);
-
+         
         this.scoreText.setText('Score: ' + this.score);
 
         mostrarMejoresPuntuaciones();
@@ -1558,7 +1567,7 @@ class GameScene2 extends Phaser.Scene {
                 let x = (this.player.x < 400)
                     ? Phaser.Math.Between(400, 800)
                     : Phaser.Math.Between(0, 400);
-                let bomb = this.bombs.create(x, 16, 'bomb1');
+                let bomb = this.bombs.create(x, 16, 'bomb12');
                 bomb.setBounce(1);
                 bomb.setCollideWorldBounds(true);
                 bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
@@ -1569,12 +1578,13 @@ class GameScene2 extends Phaser.Scene {
 
     hitBomb(player, bomb) {
         this.lives -= 1;
-        this.updateLivesUI();
+        this.updateLivesUI()
+
+        this.sound.play('deathSound'); 
 
         if (this.lives <= 0 && !this.GameOver) {
             this.GameOver = true;
             this.isGameOver();
-
             console.log("Game Over");
         }
     }
@@ -1593,7 +1603,7 @@ class GameScene2 extends Phaser.Scene {
     }
 
     Shoot() {
-        let bullet = this.bullets.create(this.player.x, this.player.y, 'bomb');
+        let bullet = this.bullets.create(this.player.x, this.player.y, 'bullet');
         bullet.setScale(0.5);
         bullet.body.allowGravity = false;
 
@@ -1605,6 +1615,7 @@ class GameScene2 extends Phaser.Scene {
     isGameOver() {
         this.physics.pause();
         this.player.setTint(0xff0000);
+        this.sound.play('deathSound');
 
         if (!this.deathSoundPlayed) {
             this.sound.play('deathSound');
@@ -1615,7 +1626,11 @@ class GameScene2 extends Phaser.Scene {
         const centerX = this.cameras.main.centerX;
         const centerY = this.cameras.main.centerY;
 
+
         let bloodBackground = this.add.image(centerX, centerY, 'Sangre')
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(9);
             .setOrigin(0.5)
             .setScrollFactor(0)
             .setDepth(9);
@@ -1625,6 +1640,16 @@ class GameScene2 extends Phaser.Scene {
             .setOrigin(0.5)
             .setScrollFactor(0)
             .setDepth(10);
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(10);
+
+        // Definir escala para los botones (por ejemplo, 0.5 para hacerlos más pequeños)
+        const buttonScale = 0.5;
+        // Offset vertical para situarlos debajo de la imagen Game Over
+        const offsetY = 150;
+        // Offset horizontal para colocarlos uno a cada lado
+        const offsetX = 80;
 
         // Botón para reiniciar el nivel
         let restartButton = this.add.image(centerX, centerY, 'Reiniciar')
@@ -1634,20 +1659,36 @@ class GameScene2 extends Phaser.Scene {
             .setDepth(10);
 
         restartButton.on('pointerdown', () => {
+            this.etapa2finalizada = false;
+            this.GameOver = false;
+            this.delay = 2000;
+            this.bossFase = 1;
+            this.isInvulnerable = false;
+            this.bossSpeed = 100;
             this.scene.restart();
-            this.lives = 3;
-            this.deathSoundPlayed = false;
+            this.scene.start('scene-game2');
+
         });
 
-        let menuButton = this.add.image(centerX, centerY, 'Home')
+        let menuButton = this.add.image(centerX + offsetX, centerY + offsetY, 'Home')
             .setInteractive()
-            .setDepth(10);
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(10)
+            .setScale(buttonScale);
         menuButton.on('pointerdown', () => {
+            this.etapa2finalizada = false;
+            this.GameOver = false;
+            this.delay = 2000;
+            this.bossFase = 1;
+            this.isInvulnerable = false;
+            this.bossSpeed = 100;
             this.scene.start('menu-scene');
         });
     }
     hitEnemyB(bullet, bomb) {
         console.log("Impacto");
+        this.sound.play('DamageEnemy'); 
 
         bullet.destroy(); // Eliminar la bala
 
@@ -1669,7 +1710,7 @@ class GameScene2 extends Phaser.Scene {
                 console.log("Han pasado 5 segundos");
                 // Aquí puedes reanudar acciones, como reiniciar el juego, mover un objeto, etc.
             }, [], this)
-            this.scene.start("scene-boos")
+            this.scene.start("scene-boss")
         }
     };
     hitEnemy = function (bullet, bomb) {
