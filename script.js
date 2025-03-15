@@ -867,6 +867,9 @@ class GameScene extends Phaser.Scene {
             case "2":
                 this.scene.start("scene-game2")
                 break;
+            case "3":
+                this.scene.start("scene-boss")
+                break;
             default:
                 console.log("Número sin acción asignada.");
                 break;
@@ -1056,16 +1059,19 @@ class GameScene2 extends Phaser.Scene {
             case "2":
                 this.scene.start("scene-game2")
                 break;
+            case "3":
+                    this.scene.start("scene-boss")
+                    break;
             default:
                 console.log("Número sin acción asignada.");
                 break;
         }
     }
 }
-
 class Boss extends Phaser.Scene {
     constructor() {
         super("scene-boss");
+        this.bossVul=true;
         this.player = null;
         this.stars = null;
         this.bombs = null;
@@ -1076,16 +1082,36 @@ class Boss extends Phaser.Scene {
         this.scoreText = null;
         this.spaceBar = null;
         this.bullets = null;
+        this.bossSpeed = 100; // Velocidad del jefe
+        this.bossDirection = -1; 
+        this.bossFase=1;
+        this.etapa2finalizada = false;
+        this.lastArrowPressed=null;
+        this.delay = 2000;
+        this.lives=3;
+        this.isInvulnerable = false;
     }
-
     preload() {
-        this.load.image('sky', 'assets/sky.png');
-        this.load.image('ground', 'assets/platform.png');
-        this.load.image('star', 'assets/star.png');
-        this.load.image('bomb', 'assets/bomb.png');
-        this.load.spritesheet('dude', 'assets/dude.png', { frameWidth: 32, frameHeight: 48 });
-    }
+        this.load.image('gameOver', 'img/MenuUI/gameOver.png');
+        this.load.image('bomb1', 'assets/Personajes/Enemigo.png', { frameWidth: 32, frameHeight: 32 });
+        this.load.image('rayo', 'assets/Personajes/rayo.png');
+        this.load.image('sky', 'img/Nivel1/Fondo.jpg');
+        this.load.image('ground', 'assets/ElementosNivel/platform.png');
+        this.load.image('star', 'assets/Consumibles/star.png');
+        this.load.image('specialItem', 'assets/Consumibles/starPlus.png');
+        this.load.image('bomb', 'assets/Personajes/bomb.png');
+        this.load.image('Sangre', 'img/GameOver/sangre.png');
+        this.load.image('ball', 'assets/Personajes/electroball1.png');
+        this.load.spritesheet('dude', 'assets/Personajes/German_Soldier1.png', { frameWidth: 32, frameHeight: 30 });
+        this.load.spritesheet('dude1', 'assets/Personajes/dude.png', { frameWidth: 32, frameHeight: 30 });
 
+        this.load.image('Home', 'assets/Botones/HomeBtn.png');
+        this.load.image('Reiniciar', 'assets/Botones/ReturnBtn.png');
+
+        this.load.audio('deathSound', 'Sounds/Damage.mp3');
+        this.load.image("boss", 'assets/Personajes/German_Soldier1.png', { frameWidth: 32, frameHeight: 30 });
+        
+    }
     create() {
         //cambiar entre escenas provicional
         this.input.keyboard.on("keydown", (event) => {
@@ -1102,27 +1128,35 @@ class Boss extends Phaser.Scene {
         this.platforms.create(400, 568, 'ground').setScale(2).refreshBody();
 
         // Jugador
-        this.player = this.physics.add.sprite(100, 450, 'dude');
+        let selectedCharacter = localStorage.getItem("selectedCharacter") || 'player1';
+        let characterMap = {
+            player1: 'dude',
+            player2: 'dude1'
+        };
+        let characterKey = characterMap[selectedCharacter] || 'dude';
+
+        // Jugador
+        this.player = this.physics.add.sprite(100, 450, characterKey);
         this.player.setBounce(0.01);
         this.player.setCollideWorldBounds(true);
 
         // Animaciones del jugador
         this.anims.create({
             key: 'left',
-            frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
+            frames: this.anims.generateFrameNumbers('dude', { start: 6, end: 11 }),
             frameRate: 10,
             repeat: -1
         });
 
         this.anims.create({
             key: 'turn',
-            frames: [{ key: 'dude', frame: 4 }],
+            frames: [{ key: 'dude', frame: 0 }],
             frameRate: 20
         });
 
         this.anims.create({
             key: 'right',
-            frames: this.anims.generateFrameNumbers('dude', { start: 5, end: 8 }),
+            frames: this.anims.generateFrameNumbers('dude', { start: 6, end: 11 }),
             frameRate: 10,
             repeat: -1
         });
@@ -1131,17 +1165,11 @@ class Boss extends Phaser.Scene {
         this.cursors = this.input.keyboard.createCursorKeys();
         //barra espaciadora
         this.spaceBar = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-        // Estrellas
-        this.stars = this.physics.add.group({
-            key: 'star',
-            repeat: 11,
-            setXY: { x: 12, y: 0, stepX: 70 }
-        });
-
-        this.stars.children.iterate(child => {
-            child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
-        });
-
+        // electrividad
+        this.rayos = this.physics.add.group();
+        
+        
+        
         // Bombas
         this.bombs = this.physics.add.group();
 
@@ -1156,30 +1184,105 @@ class Boss extends Phaser.Scene {
         });
 
         // Puntuación
+        
         this.scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#000' });
 
+        this.gameOver = false;
+        this.lives = 3;
+        this.deathSoundPlayed = false;
+        this.livesContainer = document.getElementById("lives-container");
+        this.updateLivesUI();
         // Colisiones
         this.physics.add.collider(this.player, this.platforms);
-        this.physics.add.collider(this.stars, this.platforms);
+        
         this.physics.add.collider(this.bombs, this.platforms);
 
         // Verificar si el jugador recoge una estrella
-        this.physics.add.overlap(this.player, this.stars, this.collectStar, null, this);
+        
         this.physics.add.collider(this.player, this.bombs, this.hitBomb, null, this);
+        
+        // Agregar el jefe en la pantalla
+        this.boss = this.physics.add.sprite(700, 500, "dude").setScale(4);
+        this.boss.setImmovable(true); // Evita que el jefe sea empujado
+        this.boss.setCollideWorldBounds(true);
+        this.bossHealth = 100; // Vida máxima del jefe
+        this.bossMaxHealth = 100;
+    
+        this.healthBar = this.add.graphics();
+        this.updateHealthBar();    
+    
+        this.boss.body.allowGravity = false;
+        this.physics.add.overlap(this.bullets, this.boss, this.takeDamage, null, this);
+        this.physics.add.overlap(this.bombs, this.player, this.hitBomb, null, this);
+        this.physics.add.overlap(this.boss, this.player, this.hitBoss, null, this);
+        this.physics.add.overlap(this.rayos, this.player, this.hitBoss, null, this);
+        this.physics.add.collider(this.player, this.boss);
+        this.bossShootTimer = this.time.addEvent({
+            delay: this.delay,
+            callback: () => {
+                if (this.bossFase === 1) {
+                    this.BossShoot();
+                } else {
+                    // Verifica si el tiempo de espera ha pasado
+                    if (!this.rayosCooldown) {
+                        this.CrearRayos();
+                        this.rayosCooldown = true; // Activar el cooldown
+        
+                        // Establecer un temporizador para permitir la siguiente llamada después de un retraso
+                        this.time.delayedCall(3000, () => {
+                            this.rayosCooldown = false; // Restablecer el cooldown después de 2 segundos
+                        });
+                    }
+                }
+            },
+            callbackScope: this,
+            loop: true
+        });
+        
     }
-
     update() {
         if (this.gameOver) return;
-
+        if (this.boss && this.boss.body) {
+            this.boss.setVelocityX(this.bossSpeed * this.bossDirection);
+    
+            // Cambiar dirección si toca los bordes del mundo
+            if (this.boss.body.blocked.left) {
+                this.bossDirection = 1; // Moverse a la derecha
+            } else if (this.boss.body.blocked.right) {
+                this.bossDirection = -1; // Moverse a la izquierda
+            }
+        }
         if (this.cursors.left.isDown) {
             this.player.setVelocityX(-160);
-            this.player.anims.play('left', true);
+            // Usamos la animación 'right' pero volteamos el sprite
+            this.player.anims.play('right', true);
+            this.player.setFlipX(true);
+            this.lastArrowPressed='left';
         } else if (this.cursors.right.isDown) {
             this.player.setVelocityX(160);
+            // Reproducimos la animación normal sin volteo
             this.player.anims.play('right', true);
+            this.player.setFlipX(false);
+            this.lastArrowPressed='right';
         } else {
             this.player.setVelocityX(0);
             this.player.anims.play('turn');
+        }
+
+        if (this.bossDirection == -1) {
+            
+            this.boss.anims.play('right', true);
+            this.boss.setFlipX(true);
+            
+        } else if (this.bossDirection == 1) {
+
+            this.boss.anims.play('right', true);
+            this.boss.setFlipX(false);
+            
+        } 
+        if(this.bossSpeed==0) {
+            this.boss.anims.play('turn');
+            
         }
 
         if (this.cursors.up.isDown && this.player.body.touching.down) {
@@ -1189,54 +1292,24 @@ class Boss extends Phaser.Scene {
             this.Shoot();
             this.canShoot = false;
         }
-
-
-
-
-        this.bullets.children.iterate(bullet => {
-            if (bullet.x > 800 || bullet.x < 0) {
-                bullet.destroy();
+        this.bullets.children.iterate((bullet) => {
+            if (bullet && bullet.x !== undefined) {
+                if (bullet.x < 0 || bullet.x > this.sys.game.config.width) {
+                    bullet.destroy();
+                }
             }
         });
-
+        
     }
-
-    collectStar(player, star) {
-        star.disableBody(true, true);
-        this.score += 10;
-        this.scoreText.setText('Score: ' + this.score);
-
-        if (this.stars.countActive(true) === 0) {
-            this.stars.children.iterate(child => {
-                child.enableBody(true, child.x, 0, true, true);
-            });
-
-            let x = (this.player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
-            let bomb = this.bombs.create(x, 16, 'bomb');
-            bomb.setBounce(1);
-            bomb.setCollideWorldBounds(true);
-            bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
-            bomb.allowGravity = false;
-        }
-    }
-
-    hitBomb(player, bomb) {
-        this.physics.pause();
-        this.player.setTint(0xff0000);
-        this.player.anims.play('turn');
-        this.gameOver = true;
-    }
-
     Shoot() {
         let bullet = this.bullets.create(this.player.x, this.player.y, 'bomb');
         bullet.setScale(0.5);
         bullet.body.allowGravity = false;
 
         // Determinar la dirección del disparo
-        let direction = this.player.anims.currentAnim.key === 'left' ? -1 : 1;
+        let direction = this.lastArrowPressed === 'left' ? -1 : 1;
         bullet.setVelocityX(400 * direction);
     }
-
     handleNumberPress(number) {
         switch (number) {
             case "1":
@@ -1249,6 +1322,250 @@ class Boss extends Phaser.Scene {
                 console.log("Número sin acción asignada.");
                 break;
         }
+    }
+    updateHealthBar() {
+        this.healthBar.clear(); // Limpiar la barra anterior
+
+        // Dibujar el fondo de la barra de vida (gris)
+        this.healthBar.fillStyle(0x555555);
+        this.healthBar.fillRect(150, 50, 500, 20);
+
+        // Dibujar la barra de vida en verde (según la vida actual)
+        let healthPercentage = this.bossHealth / this.bossMaxHealth;
+        this.healthBar.fillStyle(0x770000);
+        this.healthBar.fillRect(150, 50, 500 * healthPercentage, 20);
+    }
+    takeDamage(jefe, bala) {
+        bala.destroy(); // Eliminar la bala
+    
+        // Si el jefe es invulnerable, no recibe daño
+        if (this.bossInvulnerable) {
+            console.log("¡El jefe es invulnerable y no recibe daño!");
+            return;
+        }
+    
+        // Restar vida al jefe
+        let damage = 3; // Ajusta el daño según sea necesario
+        this.bossHealth = Math.max(0, this.bossHealth - damage);
+    
+        // Actualizar la barra de vida
+        this.updateHealthBar();
+    
+        this.boss.setTint(0xff0000); // Cambia el color a rojo
+        this.time.delayedCall(200, () => {
+            this.boss.clearTint(); // Regresa a su color original después de 200ms
+        });
+    
+        // Fase de furia si la vida baja al 50%
+        if (this.bossHealth <= this.bossMaxHealth * 0.5 && !this.etapa2finalizada) {
+            this.etapa2finalizada = true; // Evitar múltiples activaciones
+            this.bossFase = 2;
+            this.bossInvulnerable = true; // Hacer invulnerable al jefe
+            console.log("¡El jefe está furioso! Se vuelve invulnerable y deja de disparar.");
+    
+            // Cambiar comportamiento
+            this.bossSpeed = 0;
+             // Detener disparos
+    
+            // Después de 10 segundos, vuelve a la normalidad y puede recibir daño nuevamente
+            this.time.delayedCall(10000, () => {
+                this.bossFase = 1;
+                this.bossInvulnerable = false; // Volver a ser vulnerable
+                this.bossSpeed = 100;
+                this.delay = 1000;
+                this.bossShootTimer.paused = false; // Reanudar disparos
+            }, [], this);
+        }
+    
+        // Destruir al jefe si su vida llega a 0
+        if (this.bossHealth <= 0) {
+            this.boss.destroy(); // Destruye completamente al jefe
+            this.healthBar.clear();
+        }
+    }
+    hitBomb(player, bomb) {
+        bomb.destroy();
+        if (this.isInvulnerable) return; // No recibe daño si es invulnerable
+    
+        this.lives -= 1;
+        
+        this.updateLivesUI();
+    
+        if (this.lives <= 0 && !this.GameOver) {
+            this.GameOver = true;
+            this.isGameOver();
+        } else {
+            this.activateInvulnerability(); // Activar invulnerabilidad después de recibir daño
+        }
+    }
+    hitBoss(player, boss) {
+        if (this.isInvulnerable) return;
+    
+        this.lives -= 1;
+        this.updateLivesUI();
+    
+        if (this.lives <= 0 && !this.GameOver) {
+            this.GameOver = true;
+            this.isGameOver();
+        } else {
+            this.activateInvulnerability(); // Activar invulnerabilidad después de recibir daño
+        }
+    }
+    updateLivesUI () {
+        // Limpiar el contenedor antes de volver a renderizar las vidas
+        this.livesContainer.innerHTML = "";
+
+        // Agregar una imagen por cada vida restante
+        for (let i = 0; i < this.lives; i++) {
+            let img = document.createElement("img");
+            img.src = "assets/SpritesUI/Vidas.png"; // Ruta correcta de la imagen de vida
+            img.classList.add("life-icon"); // Clase CSS para darle estilo
+            this.livesContainer.appendChild(img);
+        }
+    };
+    BossShoot() {
+        if (!this.boss || !this.boss.body) return;
+    
+        if (this.etapa2finalizada) {
+            // En la fase 2, el jefe dispara ráfagas rápidas durante 5 segundos
+            console.log("Fase 2: Ataque rápido");
+    
+            this.time.delayedCall(5000, () => {
+                this.bossSpeed = 100;
+                this.delay =8000; // Restaurar velocidad normal de disparo
+            }, [], this);
+    
+            for (let i = 0; i < 3; i++) { // Disparar 3 balas en ráfaga
+                this.time.delayedCall(i * 300, () => {
+                    this.spawnBossProjectile();
+                }, [], this);
+            }
+    
+        } 
+        else {
+            // En la fase 1, el jefe dispara una sola bala dirigida al jugador
+            this.spawnBossProjectile();
+        }
+    }
+    spawnBossProjectile() {
+        let bomb = this.bombs.create(this.boss.x, this.boss.y, 'ball');
+        bomb.setScale(0.06);
+        
+
+        bomb.body.allowGravity = false;
+    
+        // Calcular dirección hacia el jugador
+        let angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, this.player.x, this.player.y);
+        let speed = 180;
+    
+        // Aplicar velocidad en función del ángulo
+        bomb.setVelocityX(Math.cos(angle) * speed);
+        bomb.setVelocityY(Math.sin(angle) * speed);
+    }
+    isGameOver() {
+        this.physics.pause();
+        this.player.setTint(0xff0000);
+
+        if (!this.deathSoundPlayed) {
+            this.sound.play('deathSound');
+            this.deathSoundPlayed = true;
+        }
+
+        const cam = this.cameras.main;
+        const centerX = this.cameras.main.centerX;
+        const centerY = this.cameras.main.centerY;
+
+        let bloodBackground = this.add.image(centerX, centerY, 'Sangre')
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(9);
+        bloodBackground.setDisplaySize(cam.width, cam.height);
+
+        let gameOverImage = this.add.image(centerX, centerY, 'gameOver')
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(10);
+
+        // Definir escala para los botones (por ejemplo, 0.5 para hacerlos más pequeños)
+        const buttonScale = 0.5;
+        // Offset vertical para situarlos debajo de la imagen Game Over
+        const offsetY = 150;
+        // Offset horizontal para colocarlos uno a cada lado
+        const offsetX = 80;
+
+        // Botón para reiniciar el nivel
+        let restartButton = this.add.image(centerX - offsetX, centerY + offsetY, 'Reiniciar')
+            .setInteractive()
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(10)
+            .setScale(buttonScale);
+
+        restartButton.on('pointerdown', () => {
+            this.etapa2finalizada=false;
+            this.GameOver=false;
+            this.delay=2000;
+            this.bossFase=1;
+            this.isInvulnerable = false;
+            this.bossSpeed = 100;
+            this.scene.restart();
+            this.scene.start('scene-boss');
+            
+        });
+
+        let menuButton = this.add.image(centerX + offsetX, centerY + offsetY, 'Home')
+            .setInteractive()
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(10)
+            .setScale(buttonScale);
+        menuButton.on('pointerdown', () => {
+            this.etapa2finalizada=false;
+            this.GameOver=false;
+            this.delay=2000;
+            this.bossFase=1;
+            this.isInvulnerable = false;
+            this.bossSpeed = 100;
+            this.scene.start('menu-scene');
+        });
+    }
+    activateInvulnerability() {
+        if (this.isInvulnerable) return; // Evita activar varias veces seguidas
+        
+        this.isInvulnerable = true;
+        this.player.setTint(0x888888); // Color visual para indicar invulnerabilidad
+    
+        this.time.delayedCall(2000, () => { // 2 segundos de invulnerabilidad
+            this.isInvulnerable = false;
+            this.player.clearTint();
+        }, [], this);
+    }
+    CrearRayos() {
+        let x = 0;
+        let rayos = []; // Almacenar los rayos creados
+    
+        // Crear los rayos y almacenarlos en un array
+        for (let i = 0; i < 13; i++) {
+            let ray = this.rayos.create(x, 0, 'rayo');
+            ray.body.allowGravity = false; // Inicialmente sin gravedad
+            ray.setScale(0.07);
+            ray.body.setSize(5, 5);
+            rayos.push(ray); // Guardar el rayo en el array
+            x += 70;
+        }
+    
+        let index = 0; // Índice para activar la gravedad de cada rayo
+    
+        this.time.addEvent({
+            delay: 600, // Intervalo de tiempo entre cada activación (ajústalo según necesites)
+            callback: () => {
+                if (index < rayos.length) {
+                    rayos[index].body.allowGravity = true; // Activar gravedad en el rayo actual
+                    index++; // Pasar al siguiente rayo
+                }
+            },
+            repeat: rayos.length - 1 // Repite hasta activar todos los rayos
+        });
     }
 }
 
@@ -1264,7 +1581,7 @@ const config = {
             debug: false
         }
     },
-    scene: [Menu, GameScene, GameScene2, PlayerSetupScene, ControlsScene, CreditsScene],
+    scene: [Menu, GameScene, GameScene2, PlayerSetupScene, ControlsScene, CreditsScene, Boss],
 
 };
 
