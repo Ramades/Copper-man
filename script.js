@@ -23,6 +23,7 @@ function guardarJugador(nom, punt) {
     // Guardar en localStorage
     localStorage.setItem("jugadores", JSON.stringify(jugadores));
 }
+
 function obtenerJugadores() {
     return JSON.parse(localStorage.getItem("jugadores")) || [];
 }
@@ -59,8 +60,8 @@ class Menu extends Phaser.Scene {
         );
 
 
-        let music = this.sound.add('backgroundMusic');
-        music.play({ loop: true });
+        // let music = this.sound.add('backgroundMusic');
+        // music.play({ loop: true });
 
         let logo = this.add.image(400, -100, 'Logo');
         logo.setScale(0.7, 0.5);
@@ -128,7 +129,7 @@ class Menu extends Phaser.Scene {
             .setDisplaySize(250, 60)
             .setInteractive();
 
-            TableButton.on('pointerover', () => {
+        TableButton.on('pointerover', () => {
             TableButton.setTexture('TableButtonHover'); // Cambia la imagen del botón
             this.input.setDefaultCursor('pointer');           // Cambia el cursor
             this.sound.play('hoverSound');                    // Reproduce el sonido
@@ -149,7 +150,7 @@ class Menu extends Phaser.Scene {
         });
         this.tweens.add({
             targets: TableButton,
-            y: 400,
+            y: 450,
             ease: 'easeOut',
             duration: 1500,
             delay: 700
@@ -157,24 +158,31 @@ class Menu extends Phaser.Scene {
 
         this.tweens.add({
             targets: controlsButton,
-            y: 300,
+            y: 350,
             ease: 'easeOut',
             duration: 1500,
             delay: 600
         });
         this.tweens.add({
             targets: creditsButton,
-            y: 400,
+            y: 450,
             ease: 'easeOut',
             duration: 1500,
             delay: 700
         });
-        
+
 
         // Asignar interactividad a los botones
         playButton.on('pointerdown', () => this.scene.start('PlayerSetupScene'));
         controlsButton.on('pointerdown', () => this.scene.start('ControlsScene'));
         creditsButton.on('pointerdown', () => this.scene.start('CreditsScene'));
+        TableButton.on('pointerdown', () => {
+            mostrarMejoresPuntuaciones();
+        });
+        
+
+
+
     }
 
     update() {
@@ -186,46 +194,111 @@ class ControlsScene extends Phaser.Scene {
     constructor() {
         super("ControlsScene");
     }
+
     preload() {
-        // Carga la imagen y el botón para volver al menú
-        this.load.image('controlsImage', 'assets/ElementosNivel/mountain.png'); // Imagen de controles
-        this.load.image('backButton', 'assets/SpritesUI/btn.png'); // Botón para volver al menú
+        // Carga la imagen de fondo y el botón para volver al menú, junto con su versión hover
+        this.load.image('controlsImage', 'img/MenuControles/Controles.png'); // Imagen de fondo
+        this.load.image('backButton', 'assets/Botones/BackBtn.png');
+        this.load.image('backButtonHover', 'assets/Botones/BackColBtn.png');
     }
+
     create() {
-        // Muestra la imagen de controles
+        // Muestra la imagen de fondo
         this.add.image(400, 300, 'controlsImage').setScale(1);
 
-        // Crea el botón para volver al menú
-        this.add.image(400, 500, 'backButton')
-            .setScale(0.15)
+        // Crea el botón para volver al menú con efecto hover
+        let backButton = this.add.image(400, 500, 'backButton')
+            .setScale(0.2)
             .setInteractive()
+            .on('pointerover', function () {
+                this.setTexture('backButtonHover');
+            })
+            .on('pointerout', function () {
+                this.setTexture('backButton');
+            })
             .on('pointerdown', () => {
                 this.scene.start("menu-scene");
             });
     }
 }
+
+
 class CreditsScene extends Phaser.Scene {
     constructor() {
         super("CreditsScene");
     }
-    preload() {
-        // Carga la imagen y el botón para volver al menú
-        this.load.image('controlsImage', 'assets/ElementosNivel/mountain.png'); // Imagen de controles
-        this.load.image('backButton', 'assets/SpritesUI/btn.png'); // Botón para volver al menú
-    }
-    create() {
-        // Muestra la imagen de controles
-        this.add.image(400, 300, 'controlsImage').setScale(1);
 
-        // Crea el botón para volver al menú
-        this.add.image(400, 500, 'backButton')
+    preload() {
+        // Imágenes generales
+        this.load.image('background', 'img/Nivel1/Fondo1.jpg');
+        this.load.image('backButton', 'assets/Botones/BackBtn.png');
+        this.load.image('backButtonHover', 'assets/Botones/BackColBtn.png');
+
+
+        this.load.image('image1', 'img/MenuCreditos/Abraham.jpg');
+        this.load.image('image2', 'img/MenuCreditos/David.jpg');
+        this.load.image('image3', 'img/MenuCreditos/Luis.jpg');
+        this.load.image('image4', 'assets/WarElements/element4.png');
+    }
+
+    create() {
+
+        let bg = this.add.image(400, 300, 'background')
+            .setDisplaySize(this.cameras.main.width, this.cameras.main.height)
+            .setDepth(0);
+
+        // Definir las imágenes y los textos 
+        let creditImages = ['image1', 'image2', 'image3', 'image4'];
+        let creditTexts = [
+            "Comandante: Abraham Barrientos Esquivel ",
+            "General: David Menchaca Lora 'El Implacable'",
+            "Sargento: Luis Humberto Ramírez Gutiérrez 'El Rudo'",
+            "Soldado: Angel Ramses Martinez Herrera  'El Valiente' "
+        ];
+
+
+        const startY = 100;       // Posición vertical inicial
+        const spacingY = 120;     // Separación vertical entre cada par
+        const imageX = 50;        // Posición horizontal de la imagen
+        const textX = 150;        // Posición horizontal del texto (al lado de la imagen)
+
+
+        for (let i = 0; i < creditImages.length; i++) {
+            // Agregamos la imagen (usamos setOrigin(0, 0.5) para alinear verticalmente al centro)
+            this.add.image(imageX, startY + i * spacingY, creditImages[i])
+                .setScale(0.1)
+                .setOrigin(0, 0.5)
+                .setDepth(1);
+
+            // Agregar texto a la derecha de la imagen
+            this.add.text(textX, startY + i * spacingY, creditTexts[i], {
+                font: "20px 'Courier New'",
+                fill: "#fff",
+                stroke: "#fff",
+                strokeThickness: 2
+            })
+                .setOrigin(0, 0.5)
+                .setDepth(1);
+        }
+
+        let backButton = this.add.image(this.cameras.main.centerX, this.cameras.main.height - 50, 'backButton')
             .setScale(0.15)
             .setInteractive()
+            .setScale(.3)
+            .on('pointerover', function () {
+                this.setTexture('backButtonHover');
+            })
+            .on('pointerout', function () {
+                this.setTexture('backButton');
+            })
             .on('pointerdown', () => {
                 this.scene.start("menu-scene");
-            });
+            })
+            .setDepth(2);
+
     }
 }
+
 
 // Funcion para escoger personaje y nombre del jugador
 class PlayerSetupScene extends Phaser.Scene {
@@ -424,6 +497,7 @@ class GameScene extends Phaser.Scene {
         this.load.image('Reiniciar', 'assets/Botones/ReturnBtn.png');
 
         this.load.audio('deathSound', 'Sounds/Damage.mp3');
+        this.load.audio('GameOverSound', 'Sounds/MisionFailed.mp3');
     }
 
     create() {
@@ -578,12 +652,12 @@ class GameScene extends Phaser.Scene {
             this.lastSpawnX = this.player.x;
 
             // Cantidad de objetos a generar
-            let numStars = 7;
+            let numStars = 6;
             let numBombs = 2;
 
             // Generar varias estrellas
             for (let i = 0; i < numStars; i++) {
-                let starX = this.player.x + Phaser.Math.Between(100, 300);
+                let starX = this.player.x + Phaser.Math.Between(100, 900);
                 let starY = Phaser.Math.Between(50, 300);
                 let newStar = this.stars.create(starX, starY, 'star');
                 newStar.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
@@ -746,7 +820,12 @@ class GameScene extends Phaser.Scene {
 
     hitBomb(player, bomb) {
         this.lives -= 1;
-        this.updateLivesUI();
+        this.updateLivesUI()
+
+        if (!this.bombSound || !this.bombSound.isPlaying) {
+            this.bombSound = this.sound.add('deathSound');
+            this.bombSound.play();
+        }
 
         if (this.lives <= 0 && !this.GameOver) {
             this.GameOver = true;
@@ -783,8 +862,13 @@ class GameScene extends Phaser.Scene {
         this.physics.pause();
         this.player.setTint(0xff0000);
 
+        // Detener el sonido de impacto si está reproduciéndose
+        if (this.bombSound && this.bombSound.isPlaying) {
+            this.bombSound.stop();
+        }
+
         if (!this.deathSoundPlayed) {
-            this.sound.play('deathSound');
+            this.sound.play('GameOverSound');
             this.deathSoundPlayed = true;
         }
 
@@ -1270,4 +1354,4 @@ const config = {
 
 window.onload = () => {
     const game = new Phaser.Game(config);
-};
+}; 800
