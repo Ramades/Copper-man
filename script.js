@@ -1394,10 +1394,10 @@ class GameScene2 extends Phaser.Scene {
     collectStar(player, star) {
         star.disableBody(true, true);
         this.score += 10;
-
+        this.sound.play('CollectCopper');
         let playerName = localStorage.getItem('playerName') || "Jugador";
         guardarJugador(playerName, this.score);
-
+         
         this.scoreText.setText('Score: ' + this.score);
 
         mostrarMejoresPuntuaciones();
@@ -1459,6 +1459,7 @@ class GameScene2 extends Phaser.Scene {
     isGameOver() {
         this.physics.pause();
         this.player.setTint(0xff0000);
+        this.sound.play('deathSound');
 
         if (!this.deathSoundPlayed) {
             this.sound.play('deathSound');
@@ -1503,7 +1504,7 @@ class GameScene2 extends Phaser.Scene {
             this.isInvulnerable = false;
             this.bossSpeed = 100;
             this.scene.restart();
-            this.scene.start('scene-boss');
+            this.scene.start('scene-game2');
 
         });
 
@@ -1525,6 +1526,7 @@ class GameScene2 extends Phaser.Scene {
     }
     hitEnemyB(bullet,bomb){
         console.log("Impacto");
+        this.sound.play('DamageEnemy'); 
 
         bullet.destroy(); // Eliminar la bala
 
