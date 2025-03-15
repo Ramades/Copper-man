@@ -39,10 +39,12 @@ class Menu extends Phaser.Scene {
 
         this.load.image('playButton', 'assets/Botones/PlayBtn.png'); // Botón jugar
         this.load.image('controlsButton', 'assets/Botones/ControlsBtn.png'); // Botón jugar
+        this.load.image('TableButton', 'assets/Botones/ResumeBtn.png'); // Botón jugar
         this.load.image('creditsButton', 'assets/Botones/SettinBtn.png'); // Botón jugar
 
         this.load.image('playButtonHover', 'assets/Botones/Playcol_Button.png'); // Botón jugar
         this.load.image('controlsButtonHover', 'assets/Botones/Controlscol_Button.png'); // Botón jugar
+        this.load.image('TableButtonHover', 'assets/Botones/ResumeColBtn.png'); // Botón jugar
         this.load.image('creditsButtonHover', 'assets/Botones/Settingscol_Button.png'); // Botón jugar
 
         this.load.audio('backgroundMusic', 'Sounds/MusicaPrincipal.mp3'); // Carga el archivo de audio
@@ -74,7 +76,7 @@ class Menu extends Phaser.Scene {
 
 
         // Botón Play
-        let playButton = this.add.image(400, 900, 'playButton')
+        let playButton = this.add.image(250, 900, 'playButton')
             .setDisplaySize(250, 60)
             .setInteractive();
 
@@ -90,7 +92,7 @@ class Menu extends Phaser.Scene {
         });
 
         // Botón Controls
-        let controlsButton = this.add.image(400, 900, 'controlsButton')
+        let controlsButton = this.add.image(600, 900, 'controlsButton')
             .setDisplaySize(250, 60)
             .setInteractive();
 
@@ -106,7 +108,7 @@ class Menu extends Phaser.Scene {
         });
 
         // Botón Credits
-        let creditsButton = this.add.image(400, 900, 'creditsButton')
+        let creditsButton = this.add.image(600, 900, 'creditsButton')
             .setDisplaySize(250, 60)
             .setInteractive();
 
@@ -121,28 +123,53 @@ class Menu extends Phaser.Scene {
             this.input.setDefaultCursor('default');           // Restaura el cursor
         });
 
+        // Botón Table
+        let TableButton = this.add.image(250, 900, 'TableButton')
+            .setDisplaySize(250, 60)
+            .setInteractive();
+
+            TableButton.on('pointerover', () => {
+            TableButton.setTexture('TableButtonHover'); // Cambia la imagen del botón
+            this.input.setDefaultCursor('pointer');           // Cambia el cursor
+            this.sound.play('hoverSound');                    // Reproduce el sonido
+        });
+
+        TableButton.on('pointerout', () => {
+            TableButton.setTexture('TableButton');        // Restaura la imagen original
+            this.input.setDefaultCursor('default');           // Restaura el cursor
+        });
+
         // Tween para que el botón de jugar se mueva a su posición final
         this.tweens.add({
             targets: playButton,
-            y: 300,
+            y: 350,
             ease: 'easeOut',
             duration: 1500,
             delay: 500
         });
         this.tweens.add({
-            targets: controlsButton,
+            targets: TableButton,
             y: 400,
+            ease: 'easeOut',
+            duration: 1500,
+            delay: 700
+        });
+
+        this.tweens.add({
+            targets: controlsButton,
+            y: 300,
             ease: 'easeOut',
             duration: 1500,
             delay: 600
         });
         this.tweens.add({
             targets: creditsButton,
-            y: 500,
+            y: 400,
             ease: 'easeOut',
             duration: 1500,
             delay: 700
         });
+        
 
         // Asignar interactividad a los botones
         playButton.on('pointerdown', () => this.scene.start('PlayerSetupScene'));
@@ -212,7 +239,7 @@ class PlayerSetupScene extends Phaser.Scene {
 
         this.load.image('playButton', 'assets/Botones/PlayBtn.png'); // Botón jugar
         this.load.image('playButtonHover', 'assets/Botones/Playcol_Button.png'); // Botón jugar
-        
+
     }
 
     create() {
@@ -362,7 +389,7 @@ class PlayerSetupScene extends Phaser.Scene {
 
 //Funciones del gameplay
 class GameScene extends Phaser.Scene {
-    
+
     constructor() {
         super("scene-game");
         this.player = null;
@@ -392,7 +419,7 @@ class GameScene extends Phaser.Scene {
 
         this.load.spritesheet('dude', 'assets/Personajes/German_Soldier1.png', { frameWidth: 32, frameHeight: 30 });
         this.load.spritesheet('dude1', 'assets/Personajes/dude.png', { frameWidth: 32, frameHeight: 30 });
-        
+
         this.load.image('Home', 'assets/Botones/HomeBtn.png');
         this.load.image('Reiniciar', 'assets/Botones/ReturnBtn.png');
 
@@ -747,9 +774,9 @@ class GameScene extends Phaser.Scene {
         bullet.setScale(0.5);
         bullet.body.allowGravity = false;
 
-        // Determinar la dirección del disparo
-        let direction = this.player.anims.currentAnim.key === 'left' ? -1 : 1;
-        bullet.setVelocityX(400 * direction);
+        // Determinar la dirección del disparo usando flipX
+        let direction = this.player.flipX ? -1 : 1;
+        bullet.setVelocityX(1000 * direction);
     }
 
     isGameOver() {
@@ -764,24 +791,32 @@ class GameScene extends Phaser.Scene {
         const cam = this.cameras.main;
         const centerX = this.cameras.main.centerX;
         const centerY = this.cameras.main.centerY;
-        
+
         let bloodBackground = this.add.image(centerX, centerY, 'Sangre')
-        .setOrigin(0.5)
-        .setScrollFactor(0)
-        .setDepth(9);
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(9);
         bloodBackground.setDisplaySize(cam.width, cam.height);
 
         let gameOverImage = this.add.image(centerX, centerY, 'gameOver')
-        .setOrigin(0.5)
-        .setScrollFactor(0)
-        .setDepth(10);
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(10);
+
+        // Definir escala para los botones (por ejemplo, 0.5 para hacerlos más pequeños)
+        const buttonScale = 0.5;
+        // Offset vertical para situarlos debajo de la imagen Game Over
+        const offsetY = 150;
+        // Offset horizontal para colocarlos uno a cada lado
+        const offsetX = 80;
 
         // Botón para reiniciar el nivel
-        let restartButton = this.add.image(centerX, centerY, 'Reiniciar')
-        .setInteractive()
-        .setOrigin(0.5)
-        .setScrollFactor(0)
-        .setDepth(10);
+        let restartButton = this.add.image(centerX - offsetX, centerY + offsetY, 'Reiniciar')
+            .setInteractive()
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(10)
+            .setScale(buttonScale);
 
         restartButton.on('pointerdown', () => {
             this.scene.restart();
@@ -789,9 +824,12 @@ class GameScene extends Phaser.Scene {
             this.deathSoundPlayed = false;
         });
 
-        let menuButton = this.add.image(centerX, centerY, 'Home')
+        let menuButton = this.add.image(centerX + offsetX, centerY + offsetY, 'Home')
             .setInteractive()
-            .setDepth(10);
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(10)
+            .setScale(buttonScale);
         menuButton.on('pointerdown', () => {
             this.scene.start('menu-scene');
         });
