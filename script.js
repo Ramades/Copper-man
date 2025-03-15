@@ -1630,7 +1630,7 @@ class GameScene2 extends Phaser.Scene {
         let bloodBackground = this.add.image(centerX, centerY, 'Sangre')
             .setOrigin(0.5)
             .setScrollFactor(0)
-            .setDepth(9);
+            .setDepth(9)
             .setOrigin(0.5)
             .setScrollFactor(0)
             .setDepth(9);
@@ -1639,7 +1639,7 @@ class GameScene2 extends Phaser.Scene {
         let gameOverImage = this.add.image(centerX, centerY, 'gameOver')
             .setOrigin(0.5)
             .setScrollFactor(0)
-            .setDepth(10);
+            .setDepth(10)
             .setOrigin(0.5)
             .setScrollFactor(0)
             .setDepth(10);
