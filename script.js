@@ -1,6 +1,25 @@
 let nombre;
 let puntaje;
 let personaje = 0;
+let direccionG = 4; 
+
+function cambio(url) {
+    const rutasValidas = ["/assets/Personajes/bomb.png", "/img/nivel2/bullet.png"];
+
+    for (let index = 0; index < rutasValidas.length; index++) {
+        if (url.includes(rutasValidas[index])) {
+            // Asignar 4 si es la primera opción, 5 si es la segunda
+            direccionG = index + 4; // Esto asigna 4 o 5 según la URL
+            this.load.image('bomb', `${rutasValidas[index]}`);
+            console.log(`direccionG: ${direccionG}`);
+            return;
+        }
+    }
+
+    direccionG = 0; // En caso de que la URL no sea válida, asigna 0
+}
+
+
 
 // Funciones que se encargan de guardar en el local storage 
 
@@ -340,7 +359,6 @@ class CreditsScene extends Phaser.Scene {
         const imageX = 50;        // Posición horizontal de la imagen
         const textX = 150;        // Posición horizontal del texto (al lado de la imagen)
 
-
         for (let i = 0; i < creditImages.length; i++) {
             // Agregamos la imagen (usamos setOrigin(0, 0.5) para alinear verticalmente al centro)
             this.add.image(imageX, startY + i * spacingY, creditImages[i])
@@ -566,7 +584,9 @@ class GameScene extends Phaser.Scene {
         this.load.image('ground', 'assets/ElementosNivel/platform.png');
         this.load.image('star', 'assets/Consumibles/star.png');
         this.load.image('specialItem', 'assets/Consumibles/starPlus.png');
-        this.load.image('bomb', 'assets/Personajes/bomb.png');
+        this.load.image('bomb4', "/assets/Personajes/bomb.png");
+        this.load.image('bomb5', "/img/nivel2/bullet.png");
+
         this.load.image('Sangre', 'img/GameOver/sangre.png');
 
         this.load.spritesheet('dude', 'assets/Personajes/German_Soldier1.png', { frameWidth: 32, frameHeight: 30 });
@@ -961,7 +981,7 @@ class GameScene extends Phaser.Scene {
     }
 
     Shoot() {
-        let bullet = this.bullets.create(this.player.x, this.player.y, 'bomb');
+        let bullet = this.bullets.create(this.player.x, this.player.y, `bomb${direccionG}`);
         bullet.setScale(0.5);
         bullet.body.allowGravity = false;
         this.sound.play('sonido-pistola');
@@ -1201,7 +1221,8 @@ class GameScene2 extends Phaser.Scene {
         this.load.image('ground2', 'img/nivel2/ground.png');
         this.load.image('star', 'assets/Consumibles/star.png');
         this.load.image('specialItem', 'assets/Consumibles/starPlus.png');
-        this.load.image('bullet', 'img/nivel2/bullet.png');
+        this.load.image('bomb4', "/assets/Personajes/bomb.png");
+        this.load.image('bomb5', "/img/nivel2/bullet.png");
         this.load.image('Sangre', 'img/GameOver/sangre.png');
 
         this.load.spritesheet('dude', 'assets/Personajes/German_Soldier1.png', { frameWidth: 32, frameHeight: 30 });
@@ -1604,7 +1625,7 @@ class GameScene2 extends Phaser.Scene {
     }
 
     Shoot() {
-        let bullet = this.bullets.create(this.player.x, this.player.y, 'bullet');
+        let bullet = this.bullets.create(this.player.x, this.player.y, `bomb${direccionG}`);
         bullet.setScale(0.5);
         bullet.body.allowGravity = false;
         this.sound.play('sonido-pistola');
@@ -1732,6 +1753,7 @@ class GameScene2 extends Phaser.Scene {
             bomb.clearTint(); // Volver al color normal después de 200ms
         }, 200);
 
+        
         if (bomb.health <= 0) {
             bomb.destroy();
             this.score += 20;
@@ -1784,7 +1806,7 @@ class Boss extends Phaser.Scene {
         this.load.image('ground3', 'assets/ElementosNivel/groundcopper.jpg');
         this.load.image('star', 'assets/Consumibles/star.png');
         this.load.image('specialItem', 'assets/Consumibles/starPlus.png');
-        this.load.image('bomb', 'assets/Personajes/bomb.png');
+        this.load.image('bomb', `${direccionG}`);
         this.load.image('Sangre', 'img/GameOver/sangre.png');
         this.load.image('ball', 'assets/Personajes/electroball1.png');
         this.load.spritesheet('dude', 'assets/Personajes/German_Soldier1.png', { frameWidth: 32, frameHeight: 30 });
@@ -2034,7 +2056,7 @@ class Boss extends Phaser.Scene {
 
     }
     Shoot() {
-        let bullet = this.bullets.create(this.player.x, this.player.y, 'bomb');
+        let bullet = this.bullets.create(this.player.x, this.player.y, `bomb${direccionG}`);
         bullet.setScale(0.5);
         bullet.body.allowGravity = false;
         this.sound.play('pistol');

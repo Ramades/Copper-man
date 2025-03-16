@@ -13,6 +13,106 @@
 
 </head>
 <body>
+    <div class="conte">
+        <section id="cajasoltar">
+            <p>Selecciona la municion</p>
+            <canvas id="lienzo" width="200" height="60"></canvas>
+           </section>
+           <section id="cajaimagenes" >
+            <img id="imagen1" src="/img/nivel2/bullet.png">
+            <img id="imagen2" src="/assets/Personajes/bomb.png">
+           </section>
+        <style>
+
+            .conte {
+                background-color: rgb(44, 44, 44);
+                margin-left: 20px;
+                text-align: center;
+                
+            }
+
+            p{
+                color: white;
+                font-size: 20px;
+                font-family: 'VT323', monospace;
+            }
+            #lienzo{
+                background-color: rgb(48, 48, 48);
+                border-radius: 15px;
+                border: 2px solid white;
+            }
+
+        </style>
+        <script>
+
+            function iniciar() {
+                var imagenes = document.querySelectorAll('#cajaimagenes > img');
+                imagenes.forEach(img => {
+                    img.addEventListener('dragstart', arrastrado, false);
+                });
+
+                soltar = document.getElementById('lienzo');
+                lienzo = soltar.getContext('2d');
+
+                soltar.addEventListener('dragenter', eventoEnter, false);
+                soltar.addEventListener('dragover', eventoOver, false);
+                soltar.addEventListener('drop', soltado, false);
+            }
+
+            function eventoEnter(e) {
+                e.preventDefault();
+            }
+
+            function eventoOver(e) {
+                e.preventDefault();
+            }
+
+            function arrastrado(e) {
+                e.dataTransfer.setData('id', e.target.id);
+            }
+
+            function soltado(e) {
+                e.preventDefault();
+
+                // Obtener la imagen anterior en el canvas
+                const idAnterior = soltar.dataset.imgActual;
+                if (idAnterior) {
+                    // Devolver la imagen anterior a su posición original
+                    document.getElementById(idAnterior).style.visibility = "visible";
+                }
+
+                // Obtener la nueva imagen
+                var idNuevo = e.dataTransfer.getData('id');
+                var imagenNueva = document.getElementById(idNuevo);
+
+                // Guardar la nueva imagen en el dataset
+                soltar.dataset.imgActual = idNuevo;
+
+                // Ocultar la imagen en la galería
+                imagenNueva.style.visibility = "hidden";
+
+                // Dibujar la imagen en el canvas con tamaño más pequeño
+                var img = new Image();
+                img.src = imagenNueva.src;
+                img.onload = function () {
+                    lienzo.clearRect(0, 0, soltar.width, soltar.height); // Limpiar canvas
+                    var nuevoAncho = img.width * 1; // Reducir al 30% del tamaño original
+                    var nuevoAlto = img.height * 1; 
+                    var posX = (soltar.width - nuevoAncho) / 2; // Centrar en X
+                    var posY = (soltar.height - nuevoAlto) / 2; // Centrar en Y
+                    lienzo.drawImage(img, posX, posY, nuevoAncho, nuevoAlto);
+
+                    // Llamar a la función cambio() después de que la imagen sea colocada
+                    cambio(img.src);
+                };
+            }
+            
+            window.addEventListener('load', iniciar, false);
+
+
+        </script>
+    </div>
+
 
     <div class="container">
         <div class="row">
@@ -55,9 +155,9 @@
                     <img id="exitGameBtn" src="assets/Botones/HomeBtn.png" alt="Exit Game">
                 </div>
             </div>
-
         </div>
     </div>
+
 </body>
 </html>
 
